@@ -3,295 +3,167 @@
 <head>
 <script type="text/javascript">
 
-var addEvent = function(type, callback) {
-	
-	if (type.substring(0,2) == "on") type = type.substring(2);
-	
-	if (this == null || typeof(this) == 'undefined') return;
-	if (this.addEventListener) {
-		this.addEventListener(type, callback, false);
-	} else if (this.attachEvent) {
-		this.attachEvent("on" + type, callback);
-	} else {
-		this["on"+type] = callback;
-	}
-}
 
+// ------------------------------------- JS HELPERS ---------------------------------------------------------
 function createElement( type, invars ) {
-	var ele = document.createElement(type);
-	if (invars != undefined) {
-		for (var key in invars) {
-         if ( key == "innerHTML") ele.innerHTML = invars[key];
-         else if ( key == "pokemonType" ) ele.pokemonType = invars[key];
-         else if ( key.substring(0,2) == "on") ele.addEvent(key.substring(2),invars[key]);
-			else ele.setAttribute(key,invars[key]);
-		}
-	}
-	return ele;
+   var ele = document.createElement(type);
+   if (invars != undefined) {
+      for (var key in invars) {
+         if ( key == "pokemonType" || key == "innerHTML" ) ele[key] = invars[key];
+         else ele.setAttribute(key,invars[key]);
+      }
+   }
+   return ele;
 }
 
-function addElement( type, invars )
+HTMLElement.prototype.removeFrom = function( arr )
 {
-   this.appendChild( createElement( type, invars ) );
-}
-
-function removeArrayElement( array, obj )
-{
-   let index = array.indexOf( obj );
+   let index = arr.indexOf( this );
    if ( index > -1 )
    {
-      array.splice( index, 1 );
+      arr.splice( index, 1 );
    }
+   return this;
 }
-
-function findArrayElementWithPokemonType( array, type )
+HTMLElement.prototype.pushTo = function( arr )
 {
-   for ( let c = 0; c < array.length; c++ )
-      {
-         if ( array[c].pokemonType == type )
-            return array[c];
-      }
+   arr.push( this );
+   return this;
 }
 
-HTMLElement.prototype.addEvent = addEvent;
-HTMLElement.prototype.addElement = addElement;
-// ----------------------------------------------------------------------------------------------------------
+// ------------------------------------- PKMN related classes helpers ---------------------------------------
 
 HTMLElement.prototype.pokemonType = "";
 
-var types = {
-    bug:{ css:"bug", name:"Bug", good:[], bad:[], veryBad:[] },
-    dark:{ css:"dark", name:"Dark", good:[], bad:[], veryBad:[] },
-    dragon:{ css:"dragon", name:"Dragon", good:[], bad:[], veryBad:[] },
-    electric:{ css:"electric", name:"Electric", good:[], bad:[], veryBad:[] },
-    fairy:{ css:"fairy", name:"Fairy", good:[], bad:[], veryBad:[] },
-    fighting:{ css:"fighting", name:"Fighting", good:[], bad:[], veryBad:[] },
-    fire:{ css:"fire", name:"Fire", good:[], bad:[], veryBad:[] },
-    flying:{ css:"flying", name:"Flying", good:[], bad:[], veryBad:[] },
-    ghost:{ css:"ghost", name:"Ghost", good:[], bad:[], veryBad:[] },
-    grass:{ css:"grass", name:"Grass", good:[], bad:[], veryBad:[] },
-    ground:{ css:"ground", name:"Ground", good:[], bad:[], veryBad:[] },
-    ice:{ css:"ice", name:"Ice", good:[], bad:[], veryBad:[] },
-    normal:{ css:"normal", name:"Normal", good:[], bad:[], veryBad:[] },
-    poison:{ css:"poison", name:"Poison", good:[], bad:[], veryBad:[] },
-    psychic:{ css:"psychic", name:"Psychic", good:[], bad:[], veryBad:[] },
-    rock:{ css:"rock", name:"Rock", good:[], bad:[], veryBad:[] },
-    steel:{ css:"steel", name:"Steel", good:[], bad:[], veryBad:[] },
-    water:{ css:"water", name:"Water", good:[], bad:[], veryBad:[] }
-};
+const effectivityValueGood = 1.4;
+const effectivityValueNeutral = 1;
+const effectivityValueBad = 0.71;
+const effectivityValueVeryBad = 0.51;
 
-types.bug.good = [types.dark, types.grass, types.psychic];
-types.bug.bad = [types.fairy, types.fighting, types.fire, types.flying, types.ghost, types.poison, types.steel];
-types.bug.veryBad = [];
-
-types.dark.good = [types.ghost, types.psychic];
-types.dark.bad = [types.dark, types.fairy, types.fighting];
-types.dark.veryBad = [];
-
-types.dragon.good = [types.dragon];
-types.dragon.bad = [types.steel];
-types.dragon.veryBad = [types.fairy];
-
-types.electric.good = [types.flying, types.water];
-types.electric.bad = [types.dragon, types.electric, types.grass];
-types.electric.veryBad = [types.ground];
-
-types.fairy.good = [types.dark, types.dragon, types.fighting];
-types.fairy.bad = [types.fire, types.posion, types.steel];
-types.fairy.veryBad = [];
-
-types.fighting.good = [types.dark, types.ice, types.normal, types.rock, types.steel];
-types.fighting.bad = [types.bug, types.fairy, types.flying, types.poison, types.psychic];
-types.fighting.veryBad = [types.ghost];
-
-types.fire.good = [types.bug, types.grass, types.ice, types.steel];
-types.fire.bad = [types.dragon, types.fire, types.rock, types.water];
-types.fire.veryBad = [];
-
-types.flying.good = [types.bug, types.fighting, types.grass];
-types.flying.bad = [types.electric, types.rock, types.steel];
-types.flying.veryBad = [];
-
-types.ghost.good = [types.ghost, types.psychic];
-types.ghost.bad = [types.dark];
-types.ghost.veryBad = [types.normal];
-
-types.grass.good = [types.ground,types.rock,types.water];
-types.grass.bad = [types.bug, types.dragon, types.fire, types.flying, types.grass, types.poison,types.steel];
-types.grass.veryBad = [];
-
-types.ground.good = [types.electric,types.fire,types.poison,types.rock,types.steel];
-types.ground.bad = [types.bug,types.grass];
-types.ground.veryBad = [types.flying];
-
-types.ice.good = [types.dragon,types.flying,types.grass,types.ground];
-types.ice.bad = [types.fire,types.ice,types.steel,types.water];
-types.ice.veryBad = [];
-
-types.normal.good = [];
-types.normal.bad = [types.rock,types.steel];
-types.normal.veryBad = [types.ghost];
-
-types.poison.good = [types.fairy,types.grass];
-types.poison.bad = [types.ghost,types.ground,types.posion,types.rock];
-types.poison.veryBad = [types.steel];
-
-types.psychic.good = [types.fighting,types.poison];
-types.psychic.bad = [types.psychic,types.steel];
-types.psychic.veryBad = [types.dark];
-
-types.rock.good = [types.bug,types.fire,types.flying,types.ice];
-types.rock.bad = [types.fighting,types.ground,types.steel];
-types.rock.veryBad = [];
-
-types.steel.good = [types.fairy,types.ice,types.rock];
-types.steel.bad = [types.electric,types.fire,types.steel,types.water];
-types.steel.veryBad = [];
-
-types.water.good = [types.fire,types.ground,types.rock];
-types.water.bad = [types.dragon,types.grass,types.water];
-types.water.veryBad = [];
-
-function compareTypes( source, target )
-{
-   if ( source.good.includes( target ) ) return 1.4;
-   else if ( source.bad.includes( target ) ) return 0.71;
-   else if ( source.veryBad.includes( target ) ) return 0.51;
-   else return 1;
+class Type {
+   constructor( css, name )
+   {
+      this.css = css;
+      this.name = name;
+      this.good = undefined;
+      this.bad = undefined;
+      this.veryBad = undefined;
+   }
+   getEffectivityAgainstTarget( target )
+   {
+      if ( this.good.includes( target ) ) return effectivityValueGood;
+      else if ( this.bad.includes( target ) ) return effectivityValueBad;
+      else if ( this.veryBad.includes( target ) ) return effectivityValueVeryBad;
+      else return effectivityValueNeutral;
+   }
+   getEffectivityAgainstTargets( targets )
+   {
+      let effectivity = effectivityValueNeutral;
+      for ( t in targets )
+      {
+         effectivity *= this.getEffectivityAgainstTarget( targets[t] );
+      }
+      return Math.round( effectivity * 100) / 100;
+   }
+   setEffectivity( good, bad, veryBad )
+   {
+      this.good = good;
+      this.bad = bad;
+      this.veryBad = veryBad;
+   }
 }
 
-// ----------------------------------------------------------------------------------------------------------
-
-var comparisonContainer = createElement( "div",{id:"comparisonContainer"} );
-var controlBar = createElement( "div",{id:"controlBar"} );
-var radioSingleSelection = createElement( "input" ,{ type:"radio", name:"selectMode" });
-var radioDualSelection = createElement( "input" ,{ type:"radio", checked:"checked", name:"selectMode" });
-var checkboxOnlyEffectiveResults = createElement( "input" ,{ type:"checkbox", checked:"checked", onclick:reloadSourceComparison });
-
-var selectedTypes = [];
-
-function onControlsClick( e )
+class ComparisonLine
 {
-   const element = (e.currentTarget) ? e.currentTarget : e.srcElement;
-
-   if ( selectedTypes.includes( element.pokemonType ) )
+   constructor( type, effectivity )
    {
-      element.classList.remove( "activeButton" );
-      removeArrayElement( selectedTypes, element.pokemonType );
+      this.effectivity = effectivity;
+      this.types = [type];
    }
-   else
+   addType( type )
    {
-      let activeElements = document.getElementsByClassName( "activeButton" );
-      if ( radioSingleSelection.checked )
-      {
-         while ( activeElements.length > 0 )
-         {
-            activeElements[0].classList.remove( "activeButton" );
-         }
-         selectedTypes = [];
-      }
-      else if (  radioDualSelection.checked
-              && selectedTypes.length > 1 )
-      {
-         findArrayElementWithPokemonType( activeElements, selectedTypes.shift() )
-            .classList.remove( "activeButton" );        
-      }
-      element.classList.add( "activeButton" );
-      selectedTypes.push( element.pokemonType );
+      this.types.push( type );
+      return this;
    }
-   reloadSourceComparison();
 }
 
-function reloadSourceComparison()
+class Comparison
 {
-   const selected = selectedTypes;
-   let resultLines = [];
-
-   for ( t in types )
+   constructor( sources, targets )
    {
-      let result = { type:types[t], effectivity:1 };
+      this.targets = targets;
+      this.lines = [];
 
-      for ( s in selected )
+      for ( t in sources )
       {
-         result.effectivity *= compareTypes( types[t], selected[s] );
+         this.addSource( sources[t] );
       }
-
-      result.effectivity = Math.round(result.effectivity * 100) / 100;
-      
-      let matchingLine = undefined;
-      
-      if ( !resultLines.length )
+   }
+   addSource( source )
+   {
+      console.log(source);
+      const effectivity = source.getEffectivityAgainstTargets( this.targets );
+      let match = this.lines.filter(function(line){ return line.effectivity == effectivity })[0];
+      if ( match )
       {
-         matchingLine = [];
-         resultLines.push( matchingLine );
+         match.addType( source );
       }
       else
       {
-         for ( l in resultLines )
-         {
-            let line = resultLines[l];
-            if ( line[0].effectivity == result.effectivity )
-               matchingLine = line;
-         }
-         if ( !matchingLine )
-         {
-            matchingLine = [];
-            resultLines.push( matchingLine );
-         }
+         this.lines.push( new ComparisonLine( source, effectivity ) );
       }
-      
-      
-      matchingLine.push( result );
    }
-
-   resultLines.sort( function(a,b){ return b[0].effectivity - a[0].effectivity });
-
-   printComparison( selected, resultLines );
-}
-
-function printComparison ( selected, resultLines )
-{
-   comparisonContainer.innerHTML = "";
-   
-   if ( selected.length )
+   getLines()
    {
-      let left = createElement("div",{class:"comparisonBox"});
-      let middle = createElement("div",{class:"comparisonSpacerBox", innerHTML:"&rarr;"});
-      let right = createElement("div",{class:"comparisonBox"});
-      
-      
-      
-      for ( l in resultLines )
-      {
-         let line = resultLines[l];
-         let resultLine = createElement("div",{class:"comparisonLine"});
-         
-         
-         if ( !checkboxOnlyEffectiveResults.checked || line[0].effectivity > 1 )
-	      {
-            for ( r in line )
-            {
-               let result = line[r];
-               resultLine.appendChild( createTypeIcon( result.type ) );
-               resultLine.appendChild( createElement("div",{class:"comparisonLineSpacer"}) );
-               
-            }
-            resultLine.appendChild( createElement("div",{class:"comparisonLineEfficiency",innerHTML:line[0].effectivity}) );
-            resultLine.appendChild( createElement("div",{class:"comparisonLineSpacer"}) );
-            left.appendChild( resultLine );
-	      }
-      }
-
-      for ( s in selected )
-      {
-         right.appendChild( createTypeIcon( selected[s] ) );
-      }
-
-      comparisonContainer.appendChild( left );
-      comparisonContainer.appendChild( middle );
-      comparisonContainer.appendChild( right );
+      return this.lines.sort( function(a,b){ return b.effectivity - a.effectivity });
    }
 }
+
+let Bug = new Type("Bug", "bug");
+let Dark = new Type("Dark", "dark");
+let Dragon = new Type("Dragon", "dragon");
+let Electric = new Type("Electric", "electric");
+let Fairy = new Type("Fairy", "fairy");
+let Fighting = new Type("Fighting", "fighting");
+let Fire = new Type("Fire", "fire");
+let Flying = new Type("Flying", "flying");
+let Ghost = new Type("Ghost", "ghost");
+let Grass = new Type("Grass", "grass");
+let Ground = new Type("Ground", "ground");
+let Ice = new Type("Ice", "ice");
+let Normal = new Type("Normal", "normal");
+let Poison = new Type("Poison", "poison");
+let Psychic = new Type("Psychic", "psychic");
+let Rock = new Type("Rock", "rock");
+let Steel = new Type("Steel", "steel");
+let Water = new Type("Water", "water");
+
+// ----------------------- GOOD ---------------------------------- BAD --------------------------------------------------- VERY BAD ---
+Bug.setEffectivity(      [ Dark, Grass, Psychic                ],[ Fairy, Fighting, Fire, Flying, Ghost, Poison, Steel ],[          ]);
+Dark.setEffectivity(     [ Ghost, Psychic                      ],[ Dark, Fairy, Fighting                               ],[          ]);
+Dragon.setEffectivity(   [ Dragon                              ],[ Steel                                               ],[ Fairy    ]);
+Electric.setEffectivity( [ Flying, Water                       ],[ Dragon, Electric, Grass                             ],[ Ground   ]);
+Fairy.setEffectivity(    [ Dark, Dragon, Fighting              ],[ Fire, Poison, Steel                                 ],[          ]);
+Fighting.setEffectivity( [ Dark, Ice, Normal, Rock, Steel      ],[ Bug, Fairy, Flying, Poison, Psychic                 ],[ Ghost    ]);
+Fire.setEffectivity(     [ Bug, Grass, Ice, Steel              ],[ Dragon, Fire, Rock, Water                           ],[          ]);
+Flying.setEffectivity(   [ Bug, Fighting, Grass                ],[ Electric, Rock, Steel                               ],[          ]);
+Ghost.setEffectivity(    [ Ghost, Psychic                      ],[ Dark                                                ],[ Normal   ]);
+Grass.setEffectivity(    [ Ground, Rock, Water                 ],[ Bug, Dragon, Fire, Flying, Grass, Poison,Steel      ],[          ]);
+Ground.setEffectivity(   [ Electric, Fire, Poison, Rock, Steel ],[ Bug, Grass                                          ],[ Flying   ]);
+Ice.setEffectivity(      [ Dragon, Flying, Grass, Ground       ],[ Fire, Ice, Steel, Water                             ],[          ]);
+Normal.setEffectivity(   [                                     ],[ Rock, Steel                                         ],[ Ghost    ]);
+Poison.setEffectivity(   [ Fairy, Grass                        ],[ Ghost, Ground, Poison, Rock                         ],[ Steel    ]);
+Psychic.setEffectivity(  [ Fighting, Poison                    ],[ Psychic, Steel                                      ],[ Dark     ]);
+Rock.setEffectivity(     [ Bug, Fire, Flying, Ice              ],[ Fighting, Ground, Steel                             ],[          ]);
+Steel.setEffectivity(    [ Fairy, Ice, Rock                    ],[ Electric, Fire, Steel, Water                        ],[          ]);
+Water.setEffectivity(    [ Fire, Ground, Rock                  ],[ Dragon, Grass, Water                                ],[          ]);
+// ------------------------------------------------------------------------------------------------------------------------------------
+
+const Types = [ Bug,Dark,Dragon,Electric,Fairy,Fighting,Fire,Flying,Ghost,Grass,Ground,Ice,Normal,Poison,Psychic,Rock,Steel,Water ];
+
+for ( t in Types ) Object.freeze( Types[t] );
+
+// ------------------------------------- executed code ---------------------------------------
 
 function createTypeIcon( type )
 {
@@ -303,36 +175,122 @@ function createTypeIcon( type )
       } );
 }
 
+function createComparison( selectedTypes, onlyEffectiveResults )
+{
+   let comparison = new Comparison( Types, selectedTypes );
+
+   const lines = comparison.getLines();
+
+   let container = createElement( "div",{id:"innerComparisonContainer"} );
+
+   if ( lines.length )
+   {
+      let left = createElement("div",{class:"comparisonBox"});
+      let middle = createElement("div",{class:"comparisonSpacerBox", innerHTML:"&rarr;"});
+      let right = createElement("div",{class:"comparisonBox"});
+      
+      for ( l in lines )
+      {
+         const line = lines[l];
+
+         let resultLine = createElement("div",{class:"comparisonLine"});
+         
+         if (  !onlyEffectiveResults
+            || line.effectivity > 1 )
+	      {
+            for ( r in line.types )
+            {
+               const type = line.types[r];
+               resultLine.appendChild( createTypeIcon( type ) );
+               resultLine.appendChild( createElement("div",{class:"comparisonLineSpacer"}) );
+               
+            }
+            resultLine.appendChild( createElement("div",{class:"comparisonLineEfficiency",innerHTML:line.effectivity}) );
+            resultLine.appendChild( createElement("div",{class:"comparisonLineSpacer"}) );
+            left.appendChild( resultLine );
+	      }
+      }
+
+      for ( s in selectedTypes )
+      {
+         right.appendChild( createTypeIcon( selectedTypes[s] ) );
+      }
+
+      container.appendChild( left );
+      container.appendChild( middle );
+      container.appendChild( right );
+   }
+   return container;
+}
+
+function updateButtons( selectedButtons, e, dualSelection, showEfficientOnly )
+{
+   const element = (e.currentTarget) ? e.currentTarget : e.srcElement;
+
+   if ( selectedButtons.includes( element ) )
+   {
+      element.removeFrom( selectedButtons ).classList.remove( "activeButton" );
+   }
+   else
+   {
+      if ( !dualSelection )
+      {
+         while ( selectedButtons.length > 0 )
+         {
+            selectedButtons.shift().classList.remove( "activeButton" );
+         }
+      }
+      else if ( selectedButtons.length > 1 )
+      {
+         selectedButtons.shift().classList.remove( "activeButton" );        
+      }
+
+      element.pushTo( selectedButtons ).classList.add( "activeButton" );
+   }
+}
+
 function init()
 {
-   for ( const t in types )
+   let selectedButtons = [];
+
+   let controlBar = createElement( "div",{id:"controlBar"} );
+   let radioSingleSelection = createElement( "input" ,{ type:"radio", name:"selectMode" });
+   let radioDualSelection = createElement( "input" ,{ type:"radio", checked:"checked", name:"selectMode" });
+   let checkboxOnlyEffectiveResults = createElement( "input" ,{ type:"checkbox", checked:"checked" });
+   checkboxOnlyEffectiveResults.onclick = function(e)
+      {
+         comparisonContainer.innerHTML = "";
+         if ( selectedButtons.length )
+         {
+            comparisonContainer.appendChild( createComparison( selectedButtons.map(function(b){ return b.pokemonType }),
+                                                               checkboxOnlyEffectiveResults.checked ) );
+         }
+      }
+   let comparisonContainer = createElement( "div",{id:"comparisonContainer"} );
+
+   for ( t in Types )
    {
-      let type = types[t];
-      let ctrl = createElement(
-         "div",
-         {  class:"controlButton typeIcon "+type.css,
-            pokemonType:type,
-            innerHTML:type.name,
-            onclick:onControlsClick
-         } );
+      let ctrl = createTypeIcon( Types[t] );
+      ctrl.classList.add( "controlButton" );
+      ctrl.onclick = function(e)
+      {
+         updateButtons( selectedButtons, e, radioDualSelection.checked );
+         comparisonContainer.innerHTML = "";
+         if ( selectedButtons.length )
+         {
+            comparisonContainer.appendChild( createComparison( selectedButtons.map(function(b){ return b.pokemonType }),
+                                                               checkboxOnlyEffectiveResults.checked ) );
+         }
+      };
       controlBar.appendChild( ctrl );
    }
 
    controlBar.appendChild( radioSingleSelection );
-   controlBar.addElement(
-      "text",
-      { innerHTML:"single" }
-   );
+   controlBar.appendChild( createElement( "text", { innerHTML:"single" }));
    controlBar.appendChild( radioDualSelection );
-   controlBar.addElement(
-      "text",
-      { innerHTML:"dual" }
-   );
+   controlBar.appendChild( createElement( "text", { innerHTML:"dual" }));
    controlBar.appendChild( checkboxOnlyEffectiveResults );
-   controlBar.addElement(
-      "text",
-      { innerHTML:"effective" }
-   );
+   controlBar.appendChild( createElement( "text", { innerHTML:"effective" }));
 
    document.body.appendChild( controlBar );
    document.body.appendChild( comparisonContainer );
@@ -350,6 +308,9 @@ body {
    margin-top: 20px;
    background-color: #fff;
 }
+#innerComparisonContainer {
+   margin: 0; padding: 0;
+}
 .typeIcon {
    display: inline-block;
    color: white;
@@ -357,13 +318,12 @@ body {
    margin: 4px;
    padding: 8px;
    text-shadow:
-   -2px 2px 0 black,
-   2px 2px 0 black,
-   2px -2px 0 black,
-	-2px -2px 0 black;
+   -2px 2px 2px black,
+   2px 2px 2px black,
+   2px -2px 2px black,
+	-2px -2px 2px black;
 }
 .controlButton {
-   display: inline-block;
    cursor: pointer;
 }
 .activeButton {
@@ -385,6 +345,7 @@ body {
    display: inline-block;
    padding: 4px;
    width: 2em;
+   font-weight: bold;
 }
 .comparisonBox{
    display: inline-block;
@@ -394,78 +355,24 @@ body {
    display: inline-block;
    padding: 10px;
 }
-.bug
-{
-   background-color: #a8b820;
-}
-.dark
-{
-   background-color: #705848;
-}
-.dragon
-{
-   background-color: #7038f8;
-}
-.electric
-{
-   background-color: #f8d030;
-}
-.fairy
-{
-   background-color: #68a090;
-}
-.fighting
-{
-   background-color: #bd2f27;
-}
-.fire
-{
-   background-color: #f08030;
-}
-.flying
-{
-   background-color: #a890f0;
-}
-.ghost
-{
-   background-color: #705898;
-}
-.grass
-{
-   background-color: #78c850;
-}
-.ground
-{
-   background-color: #e0c068;
-}
-.ice
-{
-   background-color: #98d8d8;
-}
-.normal
-{
-   background-color: #a8a878;
-}
-.poison
-{
-   background-color: #a040a0;
-}
-.psychic
-{
-   background-color: #f85888;
-}
-.rock
-{
-   background-color: #b8a038;
-}
-.steel
-{
-   background-color: #b8b8d0;
-}
-.water
-{
-   background-color: #6890f0;
-}
+.bug {      background-color: #a8b820; }
+.dark {     background-color: #705848; }
+.dragon {   background-color: #7038f8; }
+.electric { background-color: #f8d030; }
+.fairy {    background-color: #68a090; }
+.fighting { background-color: #bd2f27; }
+.fire {     background-color: #f08030; }
+.flying {   background-color: #a890f0; }
+.ghost {    background-color: #705898; }
+.grass {    background-color: #78c850; }
+.ground {   background-color: #e0c068; }
+.ice {      background-color: #98d8d8; }
+.normal {   background-color: #a8a878; }
+.poison {   background-color: #a040a0; }
+.psychic {  background-color: #f85888; }
+.rock {     background-color: #b8a038; }
+.steel {    background-color: #b8b8d0; }
+.water {    background-color: #6890f0; }
 </style>
 </head>
 <body onload="init()"></body>
