@@ -163,7 +163,7 @@ const Types = [ Bug,Dark,Dragon,Electric,Fairy,Fighting,Fire,Flying,Ghost,Grass,
 
 for ( t in Types ) Object.freeze( Types[t] );
 
-// ------------------------------------- executed code ---------------------------------------
+// ------------------------------------- executed code ------------------------------------------------------
 
 function createTypeIcon( type )
 {
@@ -254,19 +254,21 @@ function init()
    let selectedButtons = [];
 
    let controlBar = createElement( "div",{id:"controlBar"} );
+   let comparisonContainer = createElement( "div",{id:"comparisonContainer"} );
+
    let radioSingleSelection = createElement( "input" ,{ type:"radio", name:"selectMode" });
    let radioDualSelection = createElement( "input" ,{ type:"radio", checked:"checked", name:"selectMode" });
    let checkboxOnlyEffectiveResults = createElement( "input" ,{ type:"checkbox", checked:"checked" });
+
    checkboxOnlyEffectiveResults.onclick = function(e)
+   {
+      comparisonContainer.innerHTML = "";
+      if ( selectedButtons.length )
       {
-         comparisonContainer.innerHTML = "";
-         if ( selectedButtons.length )
-         {
-            comparisonContainer.appendChild( createComparison( selectedButtons.map(function(b){ return b.pokemonType }),
-                                                               checkboxOnlyEffectiveResults.checked ) );
-         }
+         comparisonContainer.appendChild( createComparison( selectedButtons.map(function(b){ return b.pokemonType }),
+                                                            checkboxOnlyEffectiveResults.checked ) );
       }
-   let comparisonContainer = createElement( "div",{id:"comparisonContainer"} );
+   }
 
    for ( t in Types )
    {
