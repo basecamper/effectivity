@@ -1,16 +1,15 @@
+<!DOCTYPE html>
 <html>
 <meta charset="UTF-8">
 <head>
 <script type="text/javascript">
-
-
 // ------------------------------------- JS HELPERS ---------------------------------------------------------
 function createElement( type, invars ) {
-   var ele = document.createElement(type);
-   if (invars != undefined) {
-      for (var key in invars) {
+   let ele = document.createElement(type);
+   if ( invars ) {
+      for ( var key in invars ) {
          if ( key == "pokemonType" || key == "innerHTML" ) ele[key] = invars[key];
-         else ele.setAttribute(key,invars[key]);
+         else ele.setAttribute( key, invars[key] );
       }
    }
    return ele;
@@ -33,7 +32,7 @@ HTMLElement.prototype.pushTo = function( arr )
 
 // ------------------------------------- PKMN related classes helpers ---------------------------------------
 
-HTMLElement.prototype.pokemonType = "";
+HTMLElement.prototype.pokemonType = undefined;
 
 const effectivityValueGood = 1.4;
 const effectivityValueNeutral = 1;
@@ -177,7 +176,6 @@ function createTypeIcon( type )
 function createComparison( selectedTypes, onlyEffectiveResults )
 {
    let comparison = new Comparison( Types, selectedTypes );
-
    const lines = comparison.getLines();
 
    let container = createElement( "div",{id:"innerComparisonContainer"} );
@@ -296,8 +294,6 @@ function init()
    document.body.appendChild( controlBar );
    document.body.appendChild( comparisonContainer );
 }
-
-
 </script>
 <style>
 body {
