@@ -221,7 +221,7 @@ function reloadSourceComparison()
       results.push( result );
    }
 
-   results.sort( function(a,b){ return a.effectivity < b.effectivity });
+   results.sort( function(a,b){ return b.effectivity - a.effectivity });
 
    printComparison( selected, results );
 }
