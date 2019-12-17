@@ -101,7 +101,6 @@ class Comparison
    }
    addSource( source )
    {
-      console.log(source);
       const effectivity = source.getEffectivityAgainstTargets( this.targets );
       let match = this.lines.filter(function(line){ return line.effectivity == effectivity })[0];
       if ( match )
@@ -163,7 +162,7 @@ const Types = [ Bug,Dark,Dragon,Electric,Fairy,Fighting,Fire,Flying,Ghost,Grass,
 
 for ( t in Types ) Object.freeze( Types[t] );
 
-// ------------------------------------- executed code ------------------------------------------------------
+// ------------------------------------- more code ------------------------------------------------------
 
 function createTypeIcon( type )
 {
