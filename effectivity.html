@@ -205,7 +205,7 @@ function onControlsClick( e )
 function reloadSourceComparison()
 {
    const selected = selectedTypes;
-   let results = [];
+   let resultLines = [];
 
    for ( t in types )
    {
@@ -217,29 +217,69 @@ function reloadSourceComparison()
       }
 
       result.effectivity = Math.round(result.effectivity * 100) / 100;
-
-      results.push( result );
+      
+      let matchingLine = undefined;
+      
+      if ( !resultLines.length )
+      {
+         matchingLine = [];
+         resultLines.push( matchingLine );
+      }
+      else
+      {
+         for ( l in resultLines )
+         {
+            let line = resultLines[l];
+            if ( line[0].effectivity == result.effectivity )
+               matchingLine = line;
+         }
+         if ( !matchingLine )
+         {
+            matchingLine = [];
+            resultLines.push( matchingLine );
+         }
+      }
+      
+      
+      matchingLine.push( result );
    }
 
-   results.sort( function(a,b){ return b.effectivity - a.effectivity });
+   resultLines.sort( function(a,b){ return b[0].effectivity - a[0].effectivity });
 
-   printComparison( selected, results );
+   printComparison( selected, resultLines );
 }
 
-function printComparison ( selected, results )
+function printComparison ( selected, resultLines )
 {
    comparisonContainer.innerHTML = "";
-
+   
    if ( selected.length )
    {
       let left = createElement("div",{class:"comparisonBox"});
       let middle = createElement("div",{class:"comparisonSpacerBox", innerHTML:"&rarr;"});
       let right = createElement("div",{class:"comparisonBox"});
-
-      for ( r in results )
+      
+      
+      
+      for ( l in resultLines )
       {
-         if ( !checkboxOnlyEffectiveResults.checked || results[r].effectivity > 1 )
-            left.appendChild( createResultLine( results[r] ) );
+         let line = resultLines[l];
+         let resultLine = createElement("div",{class:"comparisonLine"});
+         
+         
+         if ( !checkboxOnlyEffectiveResults.checked || line[0].effectivity > 1 )
+	      {
+            for ( r in line )
+            {
+               let result = line[r];
+               resultLine.appendChild( createTypeIcon( result.type ) );
+               resultLine.appendChild( createElement("div",{class:"comparisonLineSpacer"}) );
+               
+            }
+            resultLine.appendChild( createElement("div",{class:"comparisonLineEfficiency",innerHTML:line[0].effectivity}) );
+            resultLine.appendChild( createElement("div",{class:"comparisonLineSpacer"}) );
+            left.appendChild( resultLine );
+	      }
       }
 
       for ( s in selected )
@@ -251,18 +291,6 @@ function printComparison ( selected, results )
       comparisonContainer.appendChild( middle );
       comparisonContainer.appendChild( right );
    }
-}
-
-function createResultLine( result )
-{
-   let resultLine = createElement("div",{class:"comparisonLine"});
-
-   resultLine.appendChild( createTypeIcon( result.type ) );
-   resultLine.appendChild( createElement("div",{class:"comparisonLineSpacer"}) );
-   resultLine.appendChild( createElement("div",{class:"comparisonLineEfficiency",innerHTML:result.effectivity}) );
-   resultLine.appendChild( createElement("div",{class:"comparisonLineSpacer"}) );
-   
-   return resultLine;
 }
 
 function createTypeIcon( type )
@@ -343,6 +371,7 @@ body {
 }
 .comparisonLine{
    display: block;
+   text-align: right;
 }
 .comparisonLineSpacer{
    display: inline-block;
@@ -355,11 +384,11 @@ body {
 .comparisonLineEfficiency{
    display: inline-block;
    padding: 4px;
+   width: 2em;
 }
 .comparisonBox{
    display: inline-block;
    vertical-align: middle;
-   text-align: left;
 }
 .comparisonSpacerBox{
    display: inline-block;
