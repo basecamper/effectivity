@@ -5,35 +5,10 @@
 <script type="text/javascript">
 // ------------------------------------- JS HELPERS ---------------------------------------------------------
 function createElement( type, invars ) {
-   let ele = document.createElement(type);
-   if ( invars ) {
-      for ( var key in invars ) {
-         if ( key == "pokemonType" || key == "innerHTML" ) ele[key] = invars[key];
-         else ele.setAttribute( key, invars[key] );
-      }
-   }
-   return ele;
-}
 
-HTMLElement.prototype.removeFrom = function( arr )
-{
-   let index = arr.indexOf( this );
-   if ( index > -1 )
-   {
-      arr.splice( index, 1 );
-   }
-   return this;
-}
-HTMLElement.prototype.pushTo = function( arr )
-{
-   arr.push( this );
-   return this;
 }
 
 // ------------------------------------- PKMN related classes helpers ---------------------------------------
-
-HTMLElement.prototype.pokemonType = undefined;
-HTMLElement.prototype.visibleEntity = undefined;
 
 const effectivityValueGood = 1.4;
 const effectivityValueNeutral = 1;
@@ -113,15 +88,13 @@ Steel.setEffectivity(    [ Fairy, Ice, Rock                    ],[ Electric, Fir
 Water.setEffectivity(    [ Fire, Ground, Rock                  ],[ Dragon, Grass, Water                                ],[          ]);
 // ------------------------------------------------------------------------------------------------------------------------------------
 
-const Types = [ Bug,Dark,Dragon,Electric,Fairy,Fighting,Fire,Flying,Ghost,Grass,Ground,Ice,Normal,Poison,Psychic,Rock,Steel,Water ];
+const TYPES = [ Bug,Dark,Dragon,Electric,Fairy,Fighting,Fire,Flying,Ghost,Grass,Ground,Ice,Normal,Poison,Psychic,Rock,Steel,Water ];
 
-for ( t in Types ) Object.freeze( Types[t] );
+for ( t in TYPES ) Object.freeze( TYPES[t] );
 
 // ------------------------------------- more code ------------------------------------------------------
 
-const SELECTED_ELEMENT_CLASS = "selectedElement";
-const INVISIBLE_ELEMENT_CLASS = "invisibleElement";
-
+/*
 class VisibleEntity
 {
    constructor(parent)
@@ -369,24 +342,341 @@ class ComparisonAgainst extends VisibleEntity
 
 
    }
+}*/
+
+
+HTMLElement.prototype.entity = undefined;
+
+
+const SELECTED_ELEMENT_CLASS = "selectedElement";
+const INVISIBLE_ELEMENT_CLASS = "invisibleElement";
+
+class HTMLEntity
+{
+   constructor( args = {} )
+   {
+      this._parent = undefined;
+      this._children = [];
+      this._element = document.createElement( args.type || "div" );
+   }
+
+   get parent() { return this._parent; }
+   set parent( p ) { this._parent = p; }
+
+   get element() { return this._element; }
+   get children() { return this._children; }
+
+   hasClass( className )
+   {
+      return Boolean( this.element.classList.contains( className ) );
+   }
+   addClass( className )
+   {
+      if ( ! this.hasClass( className ) )
+      {
+         this.element.classList.add( className );
+      }
+      return this;
+   }
+
+   removeClass( className )
+   {
+      if ( this.hasClass( className ) )
+      {
+         this.element.classList.remove( className );
+      }
+      return this;
+   }
+   toggleClass( className )
+   {
+      if ( this.hasClass( className ) )
+      {
+         this.removeClass( className );
+      }
+      else
+      {
+         this.addClass( className );
+      }
+      return this;
+   }
+
+   addChild( child, index = -1 )
+   {
+      if ( child instanceof HTMLEntity )
+      {
+         this.children.push( child );
+         child.parent = this;
+         this.element.appendChild( child.element );
+      }
+      else
+      {
+         console.error("HTMLEntity.addChild ERROR child not of class HTMLEntity" );
+         console.info("parent ", this);
+         console.info("child ", child);
+      }
+      return this;
+   }
+
+   addChildren( children )
+   {
+      children.forEach(e => { this.addChild( e ) });
+      return this;
+   }
+   remove()
+   {
+      this.children.forEach(c => { c.removeFrom( this.children );
+                                   c.remove(); });
+      delete this;
+   }
+   empty( parent = undefined )
+   {
+      this.children.forEach(c => { c.removeFrom( this.children );
+                                   c.remove(); });
+      this.element.innerHTML = "";
+      return this;
+   }
+
+   addOnClickFunc( proc )
+   {
+      let self = this;
+      this.element.addEventListener( "click", function() { proc( self ); });
+      return this;
+   }
+
+   removeFrom = function( arr )
+   {
+      let index = arr.indexOf( this );
+      if ( index > -1 )
+      {
+         arr.splice( index, 1 );
+      }
+      return this;
+   }
+   pushTo = function( arr )
+   {
+      arr.push( this );
+      return this;
+   }
+}
+
+class TypeIcon extends HTMLEntity
+{
+   constructor( type )
+   {
+      super().addClass("typeIcon").addClass( type.css );
+      super.element.innerHTML = type.name;
+      this._type = type;
+   }
+   get type() { return this._type; }
+}
+
+class Button extends TypeIcon
+{
+   constructor( type )
+   {
+      super( type );
+      const self = this;
+      self._isSelected = false;
+
+      /*this.addOnClickFunc( function ( e ) {
+         
+      } );*/
+   }
+   get selected()
+   {
+      return this._isSelected;
+   }
+   set selected( value )
+   {
+      if ( typeof value === "boolean" )
+      {
+         if ( value != this._isSelected )
+         {
+            this._isSelected = value;
+            this.toggleClass( SELECTED_ELEMENT_CLASS );
+         }
+         else
+         {
+            console.warn("Button.selected: already in state: ", value);
+         }
+      }
+      else
+      {
+         console.error("Button.selected: trying to set selected to non-bool value ");
+         console.log( "value", value );
+      }
+   }
+}
+
+class ControlBar extends HTMLEntity
+{
+   constructor( onUpdate = undefined )
+   {
+      super().addClass("controlBar");
+
+      this.selectedButtons = [];
+      this.onUpdate = onUpdate;
+      const self = this;
+
+      const onButtonClick = function( button )
+      {
+         if ( self.selectedButtons.includes( button ) )
+         {
+            self.unselectButton( button );
+         }
+         else if ( self.selectedButtons.length < 2 )
+         {
+            self.selectButton( button );
+         }
+         else {
+            self.unselectButton( self.selectedButtons[0] );
+            self.selectButton( button );
+         }
+
+         self.onUpdate( self );
+      }
+
+      TYPES.forEach( type => {
+         this.addChild( new Button( type )
+                           .addOnClickFunc( function ( button ) { onButtonClick( button ); } )
+                      );
+      });
+   }
+   unselectButton( button )
+   {
+      button.removeFrom( this.selectedButtons );
+      button.selected = false;
+   }
+   selectButton( button )
+   {
+      if ( this.selectedButtons.length >= 2 )
+      {
+         this.unselectButton( this.selectedButtons[0] )
+      }
+      button.pushTo( this.selectedButtons );
+      button.selected = true;
+   }
+}
+
+class Result
+{
+   constructor( mapPoints, effectivity = 1 )
+   {
+      this.mapPoints = mapPoints;
+      this.effectivity = effectivity;
+   }
+}
+
+
+class MapPoint
+{
+   constructor( types )
+   {
+      this.types = types;
+   }
+
+   get effectiveTo()
+   {
+      let results = [];
+
+      
+   
+      return Object.freeze( results );
+
+   }
+   get effectiveFrom()
+   {
+      let results = [];
+
+      for ( const s in sources )
+      {
+         const sourceType = sources[s];
+         const effectivity = sourceType.getEffectivityAgainstTargets( this.types );
+         let match = results.filter( function(e) { return e.effectivity == effectivity } )[0];
+
+         if ( !match )
+         {
+            results.push( new Result( new ResultMapPoint([sourceType]), effectivity ) );
+         }
+         else
+         {
+            match.mapPoints.push( new ResultMapPoint([sourceType]) );
+         }
+      }
+
+      return Object.freeze( results );
+   }
+}
+
+
+class ResultColumn extends HTMLEntity
+{
+   constructor( sourceResult )
+   {
+      super().addClass("resultLine");
+      let results = [];
+
+      for ( const s in sources )
+      {
+         const sourceType = sources[s];
+         const effectivity = sourceType.getEffectivityAgainstTargets( this.types );
+         let match = results.filter( function(e) { return e.effectivity == effectivity } )[0];
+
+         if ( !match )
+         {
+            results.push( new Result( new ResultMapPoint([sourceType]), effectivity ) );
+         }
+         else
+         {
+            match.mapPoints.push( new ResultMapPoint([sourceType]) );
+         }
+      }
+   }
+}
+class ResultBox extends HTMLEntity
+{
+   constructor( selected )
+   {
+      super().addClass("resultBox");
+      const selectedMapPoint = new MapPoint( selected );
+      const resultsFrom = selectedMapPoint.effectiveFrom;
+      console.log( resultsFrom );
+
+      this.targetLine = new ResultColumn();
+      this.sourceLine = new ResultColumn();
+      super.addChildren( [ this.targetLine, this.sourceLine ] );
+   }
+   static get MODE_FROM_SOURCES() { return 1; }
+   static get MODE_TO_TARGETS() { return 2; }
+
+
+
+}
+
+class ResultContainer extends HTMLEntity
+{
+   constructor()
+   {
+      super().addClass("resultContainer");
+   }
 }
 
 function init()
 {
-   let selectedButtons = [];
+   let body = document.body;
+   let controls = new ControlBar();
+   let results = new ResultContainer();
+   let resultBox1 = undefined;
+   let resultBox2 = undefined;
 
-   const controls = new Controls( Types );
-
-   
-
-
-   controls.onClickProc = function(e)
+   controls.onUpdate = function( bar )
    {
-      console.log("selected buttons ", controls.selectedButtons );
-   };
-   
+      results.empty();
+      results.addChildren( new ResultBox() );
+   }
 
-   document.body.appendChild( controls.create() );
+   body.appendChild(controls.element);
+   body.appendChild(results.element);
 }
 </script>
 <style>
@@ -416,6 +706,7 @@ body {
 	-2px -2px 2px black;
 }
 .controlBar {
+   display: block;
 }
 .selectedElement {
    border: 5px dashed white;
