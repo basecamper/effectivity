@@ -33,6 +33,7 @@ HTMLElement.prototype.pushTo = function( arr )
 // ------------------------------------- PKMN related classes helpers ---------------------------------------
 
 HTMLElement.prototype.pokemonType = undefined;
+HTMLElement.prototype.visibleEntity = undefined;
 
 const effectivityValueGood = 1.4;
 const effectivityValueNeutral = 1;
@@ -69,51 +70,6 @@ class Type {
       this.good = good;
       this.bad = bad;
       this.veryBad = veryBad;
-   }
-}
-
-class ComparisonLine
-{
-   constructor( type, effectivity )
-   {
-      this.effectivity = effectivity;
-      this.types = [type];
-   }
-   addType( type )
-   {
-      this.types.push( type );
-      return this;
-   }
-}
-
-class Comparison
-{
-   constructor( sources, targets )
-   {
-      this.targets = targets;
-      this.lines = [];
-
-      for ( t in sources )
-      {
-         this.addSource( sources[t] );
-      }
-   }
-   addSource( source )
-   {
-      const effectivity = source.getEffectivityAgainstTargets( this.targets );
-      let match = this.lines.filter(function(line){ return line.effectivity == effectivity })[0];
-      if ( match )
-      {
-         match.addType( source );
-      }
-      else
-      {
-         this.lines.push( new ComparisonLine( source, effectivity ) );
-      }
-   }
-   getLines()
-   {
-      return this.lines.sort( function(a,b){ return b.effectivity - a.effectivity });
    }
 }
 
@@ -163,86 +119,255 @@ for ( t in Types ) Object.freeze( Types[t] );
 
 // ------------------------------------- more code ------------------------------------------------------
 
-function createTypeIcon( type )
+const SELECTED_ELEMENT_CLASS = "selectedElement";
+const INVISIBLE_ELEMENT_CLASS = "invisibleElement";
+
+class VisibleEntity
 {
-   return createElement(
-      "div",
-      {  class:"typeIcon "+type.css,
-         pokemonType:type,
-         innerHTML:type.name
-      } );
+   constructor(parent)
+   {
+      this.children = [];
+      this.isVisible = true;
+      this._parent = parent;
+      this._htmlElement = undefined;
+      this._isSelected = false;
+   }
+   set visible( bool )
+   {
+      this.isVisible = Boolean(bool);
+   }
+   get selected()
+   {
+      return this._isSelected;
+   }
+   set selected( bool )
+   {
+      this._isSelected = Boolean(bool);
+   }
+   get htmlElement()
+   {
+      return this._htmlElement;
+   }
+   set htmlElement( ele )
+   {
+      this._htmlElement = ele;
+   }
+   get parent()
+   {
+      return this._parent;
+   }
+   set parent( ele )
+   {
+      this._parent = ele;
+   }
+   addChild( child )
+   {
+      this.children.push( child );
+   }
+   toggleClass( className )
+   {
+      if ( this.htmlElement.classList.contains( className ) )
+      {
+         this.htmlElement.classList.remove( className );
+         this.isSelected = false;
+      }
+      else
+      {
+         this.htmlElement.classList.add( className );
+         this.isSelected = true;
+      }
+   }
+   removeFrom = function( arr )
+   {
+      let index = arr.indexOf( this );
+      if ( index > -1 )
+      {
+         arr.splice( index, 1 );
+      }
+      return this;
+   }
+   create( type, vars, parent )
+   {
+      this.htmlElement = createElement( type, vars );
+      this.htmlElement.visibleEntity = this;
+
+      if ( this.isVisible && !this.htmlElement.classList.contains(INVISIBLE_ELEMENT_CLASS) )
+      {
+         this.htmlElement.classList.add(INVISIBLE_ELEMENT_CLASS);
+      }
+      if ( this.isSelected && !this.htmlElement.classList.contains(SELECTED_ELEMENT_CLASS) )
+      {
+         this.htmlElement.classList.add(SELECTED_ELEMENT_CLASS);
+      }
+
+      for ( const child in this.children )
+      {
+         this.htmlElement.appendChild( this.children[child].create() );
+      }
+      return this.htmlElement;
+   }
 }
 
-function createComparison( selectedTypes, onlyEffectiveResults )
+class TypeIcon extends VisibleEntity
 {
-   let comparison = new Comparison( Types, selectedTypes );
-   const lines = comparison.getLines();
-
-   let container = createElement( "div",{id:"innerComparisonContainer"} );
-
-   if ( lines.length )
+   constructor( type )
    {
-      let left = createElement("div",{class:"comparisonBox"});
-      let middle = createElement("div",{class:"comparisonSpacerBox", innerHTML:"&rarr;"});
-      let right = createElement("div",{class:"comparisonBox"});
-      
-      for ( l in lines )
-      {
-         const line = lines[l];
-
-         let resultLine = createElement("div",{class:"comparisonLine"});
+      super();
+      this.type = type;
+   }
+   create(parent)
+   {
+      return super.create( "div",
+                           {  class:"typeIcon "+this.type.css,
+                              innerHTML:this.type.name
+                           },
+                           (parent) ? parent : this );
          
-         if (  !onlyEffectiveResults
-            || line.effectivity > 1 )
-	      {
-            for ( r in line.types )
-            {
-               const type = line.types[r];
-               resultLine.appendChild( createTypeIcon( type ) );
-               resultLine.appendChild( createElement("div",{class:"comparisonLineSpacer"}) );
-               
-            }
-            resultLine.appendChild( createElement("div",{class:"comparisonLineEfficiency",innerHTML:line.effectivity}) );
-            resultLine.appendChild( createElement("div",{class:"comparisonLineSpacer"}) );
-            left.appendChild( resultLine );
-	      }
-      }
-
-      for ( s in selectedTypes )
-      {
-         right.appendChild( createTypeIcon( selectedTypes[s] ) );
-      }
-
-      container.appendChild( left );
-      container.appendChild( middle );
-      container.appendChild( right );
    }
-   return container;
 }
 
-function updateButtons( selectedButtons, e, dualSelection, showEfficientOnly )
+class Button extends TypeIcon // final
 {
-   const element = (e.currentTarget) ? e.currentTarget : e.srcElement;
-
-   if ( selectedButtons.includes( element ) )
+   constructor( type, container, onClickProc )
    {
-      element.removeFrom( selectedButtons ).classList.remove( "activeButton" );
+      super(type);
+      super.parent = this;
+      this.buttonContainer = container;
+      this.onClickProc = onClickProc;
    }
-   else
+   onClick(e, buttonContainer)
    {
-      if ( !dualSelection )
+      const element = (e.currentTarget) ? e.currentTarget : e.srcElement;
+   
+      const entity = element.visibleEntity;
+      let container = buttonContainer.selectedButtons;
+
+      if ( container.includes( entity ) )
       {
-         while ( selectedButtons.length > 0 )
+         console.log("Button.onClick: container.includes( entity )");
+         entity.removeFrom( container );
+      }
+      else if ( container.length < 2 )
+      {
+         console.log("Button.onClick: container.length < 2");
+         container.push( entity );
+      }
+      else
+      {
+         console.log("Button.onClick: fallback");
+         container.shift().toggleClass( SELECTED_ELEMENT_CLASS );
+         container.push( entity );
+      }
+      entity.toggleClass( SELECTED_ELEMENT_CLASS );
+   }
+   create()
+   {
+      let elem = super.create( this );
+      let self = this;
+      elem.onclick = function(e)
+      {
+         self.onClick( e, self.buttonContainer );
+         self.onClickProc( e );
+      };
+      return elem;
+   }
+}
+
+class Controls extends VisibleEntity // final
+{
+   constructor( types, onClickProc = undefined )
+   {
+      super();
+      this.types = types;
+      this._onClickProc = onClickProc;
+      this.selectedButtons = [];
+      const self = this;
+      for ( const t in this.types )
+      {
+         super.addChild( new Button( this.types[t], this, 
+            function(e){
+                  self.onClick(e);
+                  if ( self.onClickProc ) self.onClickProc(e);
+               } ) );
+      }
+   }
+   set onClickProc(func)
+   {
+      this._onClickProc = func;
+   }
+   get onClickProc()
+   {
+      return this._onClickProc;
+   }
+   onClick(e)
+   {  
+      console.log("Controls onClick");
+   }
+   create()
+   {
+      return super.create( "div", {  class:"controlBar "}, this );
+   }
+}
+
+class ComparisonLine extends VisibleEntity
+{
+   constructor( sources, effectivity, targets, sortBySourceEffectivity )
+   {
+      this.sources = [];
+      this.effectivity = [];
+      this.targets = [];
+   }
+   create()
+   {
+      return super.create( "div", {  class:"comparisonLine"}, this );
+   }
+}
+
+class ComparisonBoxes extends VisibleEntity
+{
+   constructor()
+   {
+      this.lines = [];
+   }
+   addLine(comparisonLine)
+   {
+      let match = ( comparisonLine.effectivity )
+                ? this.lines.find(function(l){ return l.effectivity == comparisonLine.effectivity })[0]
+                : undefined;
+   }
+   create()
+   {
+      this.children = this.lines;
+      return super.create( "div", {  class:"controlBar "}, this );
+   }
+
+}
+class ComparisonAgainst extends VisibleEntity
+{
+   constructor( sources, targets )
+   {
+      this.sourceLines = [];
+      this.targetLines = [];
+
+      for( const s in sources )
+      {
+         const source = sources[s];
+         let efficiency = 1;
+         for( const t in targets )
          {
-            selectedButtons.shift().classList.remove( "activeButton" );
+            const target = targets[t];
+
+
+
+
          }
       }
-      else if ( selectedButtons.length > 1 )
-      {
-         selectedButtons.shift().classList.remove( "activeButton" );        
-      }
 
-      element.pushTo( selectedButtons ).classList.add( "activeButton" );
+      this.comparisonBoxLeft = new ComparisonBoxes();
+      this.comparisonBoxMiddle = new ComparisonBoxes();
+      this.comparisonBoxRight = new ComparisonBoxes();
+
+
    }
 }
 
@@ -250,49 +375,18 @@ function init()
 {
    let selectedButtons = [];
 
-   let controlBar = createElement( "div",{id:"controlBar"} );
-   let comparisonContainer = createElement( "div",{id:"comparisonContainer"} );
+   const controls = new Controls( Types );
 
-   let radioSingleSelection = createElement( "input" ,{ type:"radio", name:"selectMode" });
-   let radioDualSelection = createElement( "input" ,{ type:"radio", checked:"checked", name:"selectMode" });
-   let checkboxOnlyEffectiveResults = createElement( "input" ,{ type:"checkbox", checked:"checked" });
+   
 
-   checkboxOnlyEffectiveResults.onclick = function(e)
+
+   controls.onClickProc = function(e)
    {
-      comparisonContainer.innerHTML = "";
-      if ( selectedButtons.length )
-      {
-         comparisonContainer.appendChild( createComparison( selectedButtons.map(function(b){ return b.pokemonType }),
-                                                            checkboxOnlyEffectiveResults.checked ) );
-      }
-   }
+      console.log("selected buttons ", controls.selectedButtons );
+   };
+   
 
-   for ( t in Types )
-   {
-      let ctrl = createTypeIcon( Types[t] );
-      ctrl.classList.add( "controlButton" );
-      ctrl.onclick = function(e)
-      {
-         updateButtons( selectedButtons, e, radioDualSelection.checked );
-         comparisonContainer.innerHTML = "";
-         if ( selectedButtons.length )
-         {
-            comparisonContainer.appendChild( createComparison( selectedButtons.map(function(b){ return b.pokemonType }),
-                                                               checkboxOnlyEffectiveResults.checked ) );
-         }
-      };
-      controlBar.appendChild( ctrl );
-   }
-
-   controlBar.appendChild( radioSingleSelection );
-   controlBar.appendChild( createElement( "text", { innerHTML:"single" }));
-   controlBar.appendChild( radioDualSelection );
-   controlBar.appendChild( createElement( "text", { innerHTML:"dual" }));
-   controlBar.appendChild( checkboxOnlyEffectiveResults );
-   controlBar.appendChild( createElement( "text", { innerHTML:"effective" }));
-
-   document.body.appendChild( controlBar );
-   document.body.appendChild( comparisonContainer );
+   document.body.appendChild( controls.create() );
 }
 </script>
 <style>
@@ -310,6 +404,7 @@ body {
 }
 .typeIcon {
    display: inline-block;
+   cursor: pointer;
    color: white;
    font-size: 25px;
    margin: 4px;
@@ -320,10 +415,9 @@ body {
    2px -2px 2px black,
 	-2px -2px 2px black;
 }
-.controlButton {
-   cursor: pointer;
+.controlBar {
 }
-.activeButton {
+.selectedElement {
    border: 5px dashed white;
 }
 .comparisonLine{
