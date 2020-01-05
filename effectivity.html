@@ -3,13 +3,11 @@
 <meta charset="UTF-8">
 <head>
 <script type="text/javascript">
-// ------------------------------------- JS HELPERS ---------------------------------------------------------
-function createElement( type, invars ) {
 
-}
+HTMLElement.prototype.entity = undefined;
 
-// ------------------------------------- PKMN related classes helpers ---------------------------------------
-
+const SELECTED_ELEMENT_CLASS = "selectedElement";
+const INVISIBLE_ELEMENT_CLASS = "invisibleElement";
 const effectivityValueGood = 1.4;
 const effectivityValueNeutral = 1;
 const effectivityValueBad = 0.71;
@@ -24,12 +22,31 @@ class Type {
       this.bad = undefined;
       this.veryBad = undefined;
    }
+   equals( target )
+   {
+      if ( target instanceof Type )
+      {
+         return ( this == target );
+      }
+      return false;
+   }
    getEffectivityAgainstTarget( target )
    {
-      if ( this.good.includes( target ) ) return effectivityValueGood;
-      else if ( this.bad.includes( target ) ) return effectivityValueBad;
-      else if ( this.veryBad.includes( target ) ) return effectivityValueVeryBad;
-      else return effectivityValueNeutral;
+      if ( target instanceof Type )
+      {
+         if ( this.good.includes( target ) ) return effectivityValueGood;
+         else if ( this.bad.includes( target ) ) return effectivityValueBad;
+         else if ( this.veryBad.includes( target ) ) return effectivityValueVeryBad;
+         else return effectivityValueNeutral;
+      }
+      else if ( target instanceof DoubleType )
+      {
+         return this.getEffectivityAgainstTargets( target.types )
+      }
+      else {
+         log.warn( "Type.getEffectivityAgainstTarget: target is of no valid class" );
+      }
+      return 0;
    }
    getEffectivityAgainstTargets( targets )
    {
@@ -92,265 +109,6 @@ const TYPES = [ Bug,Dark,Dragon,Electric,Fairy,Fighting,Fire,Flying,Ghost,Grass,
 
 for ( t in TYPES ) Object.freeze( TYPES[t] );
 
-// ------------------------------------- more code ------------------------------------------------------
-
-/*
-class VisibleEntity
-{
-   constructor(parent)
-   {
-      this.children = [];
-      this.isVisible = true;
-      this._parent = parent;
-      this._htmlElement = undefined;
-      this._isSelected = false;
-   }
-   set visible( bool )
-   {
-      this.isVisible = Boolean(bool);
-   }
-   get selected()
-   {
-      return this._isSelected;
-   }
-   set selected( bool )
-   {
-      this._isSelected = Boolean(bool);
-   }
-   get htmlElement()
-   {
-      return this._htmlElement;
-   }
-   set htmlElement( ele )
-   {
-      this._htmlElement = ele;
-   }
-   get parent()
-   {
-      return this._parent;
-   }
-   set parent( ele )
-   {
-      this._parent = ele;
-   }
-   addChild( child )
-   {
-      this.children.push( child );
-   }
-   toggleClass( className )
-   {
-      if ( this.htmlElement.classList.contains( className ) )
-      {
-         this.htmlElement.classList.remove( className );
-         this.isSelected = false;
-      }
-      else
-      {
-         this.htmlElement.classList.add( className );
-         this.isSelected = true;
-      }
-   }
-   removeFrom = function( arr )
-   {
-      let index = arr.indexOf( this );
-      if ( index > -1 )
-      {
-         arr.splice( index, 1 );
-      }
-      return this;
-   }
-   create( type, vars, parent )
-   {
-      this.htmlElement = createElement( type, vars );
-      this.htmlElement.visibleEntity = this;
-
-      if ( this.isVisible && !this.htmlElement.classList.contains(INVISIBLE_ELEMENT_CLASS) )
-      {
-         this.htmlElement.classList.add(INVISIBLE_ELEMENT_CLASS);
-      }
-      if ( this.isSelected && !this.htmlElement.classList.contains(SELECTED_ELEMENT_CLASS) )
-      {
-         this.htmlElement.classList.add(SELECTED_ELEMENT_CLASS);
-      }
-
-      for ( const child in this.children )
-      {
-         this.htmlElement.appendChild( this.children[child].create() );
-      }
-      return this.htmlElement;
-   }
-}
-
-class TypeIcon extends VisibleEntity
-{
-   constructor( type )
-   {
-      super();
-      this.type = type;
-   }
-   create(parent)
-   {
-      return super.create( "div",
-                           {  class:"typeIcon "+this.type.css,
-                              innerHTML:this.type.name
-                           },
-                           (parent) ? parent : this );
-         
-   }
-}
-
-class Button extends TypeIcon // final
-{
-   constructor( type, container, onClickProc )
-   {
-      super(type);
-      super.parent = this;
-      this.buttonContainer = container;
-      this.onClickProc = onClickProc;
-   }
-   onClick(e, buttonContainer)
-   {
-      const element = (e.currentTarget) ? e.currentTarget : e.srcElement;
-   
-      const entity = element.visibleEntity;
-      let container = buttonContainer.selectedButtons;
-
-      if ( container.includes( entity ) )
-      {
-         console.log("Button.onClick: container.includes( entity )");
-         entity.removeFrom( container );
-      }
-      else if ( container.length < 2 )
-      {
-         console.log("Button.onClick: container.length < 2");
-         container.push( entity );
-      }
-      else
-      {
-         console.log("Button.onClick: fallback");
-         container.shift().toggleClass( SELECTED_ELEMENT_CLASS );
-         container.push( entity );
-      }
-      entity.toggleClass( SELECTED_ELEMENT_CLASS );
-   }
-   create()
-   {
-      let elem = super.create( this );
-      let self = this;
-      elem.onclick = function(e)
-      {
-         self.onClick( e, self.buttonContainer );
-         self.onClickProc( e );
-      };
-      return elem;
-   }
-}
-
-class Controls extends VisibleEntity // final
-{
-   constructor( types, onClickProc = undefined )
-   {
-      super();
-      this.types = types;
-      this._onClickProc = onClickProc;
-      this.selectedButtons = [];
-      const self = this;
-      for ( const t in this.types )
-      {
-         super.addChild( new Button( this.types[t], this, 
-            function(e){
-                  self.onClick(e);
-                  if ( self.onClickProc ) self.onClickProc(e);
-               } ) );
-      }
-   }
-   set onClickProc(func)
-   {
-      this._onClickProc = func;
-   }
-   get onClickProc()
-   {
-      return this._onClickProc;
-   }
-   onClick(e)
-   {  
-      console.log("Controls onClick");
-   }
-   create()
-   {
-      return super.create( "div", {  class:"controlBar "}, this );
-   }
-}
-
-class ComparisonLine extends VisibleEntity
-{
-   constructor( sources, effectivity, targets, sortBySourceEffectivity )
-   {
-      this.sources = [];
-      this.effectivity = [];
-      this.targets = [];
-   }
-   create()
-   {
-      return super.create( "div", {  class:"comparisonLine"}, this );
-   }
-}
-
-class ComparisonBoxes extends VisibleEntity
-{
-   constructor()
-   {
-      this.lines = [];
-   }
-   addLine(comparisonLine)
-   {
-      let match = ( comparisonLine.effectivity )
-                ? this.lines.find(function(l){ return l.effectivity == comparisonLine.effectivity })[0]
-                : undefined;
-   }
-   create()
-   {
-      this.children = this.lines;
-      return super.create( "div", {  class:"controlBar "}, this );
-   }
-
-}
-class ComparisonAgainst extends VisibleEntity
-{
-   constructor( sources, targets )
-   {
-      this.sourceLines = [];
-      this.targetLines = [];
-
-      for( const s in sources )
-      {
-         const source = sources[s];
-         let efficiency = 1;
-         for( const t in targets )
-         {
-            const target = targets[t];
-
-
-
-
-         }
-      }
-
-      this.comparisonBoxLeft = new ComparisonBoxes();
-      this.comparisonBoxMiddle = new ComparisonBoxes();
-      this.comparisonBoxRight = new ComparisonBoxes();
-
-
-   }
-}*/
-
-
-HTMLElement.prototype.entity = undefined;
-
-
-const SELECTED_ELEMENT_CLASS = "selectedElement";
-const INVISIBLE_ELEMENT_CLASS = "invisibleElement";
-
 class HTMLEntity
 {
    constructor( args = {} )
@@ -411,8 +169,9 @@ class HTMLEntity
       else
       {
          console.error("HTMLEntity.addChild ERROR child not of class HTMLEntity" );
-         console.info("parent ", this);
-         console.info("child ", child);
+         console.log("parent ", this);
+         console.log("child ", child);
+         console.log();
       }
       return this;
    }
@@ -438,7 +197,7 @@ class HTMLEntity
 
    addOnClickFunc( proc )
    {
-      let self = this;
+      const self = this;
       this.element.addEventListener( "click", function() { proc( self ); });
       return this;
    }
@@ -459,6 +218,68 @@ class HTMLEntity
    }
 }
 
+class DoubleType extends HTMLEntity
+{
+   constructor( types )
+   {
+      super().addClass("doubleType");
+      this.addChild( new TypeIcon( [ types[0], types[1] ] ) );
+      this._types = types;
+   }
+   get types() { return this._types; }
+
+   equals( target )
+   {
+      if ( ! target instanceof DoubleType )
+      {
+         return false;
+      }
+      this.types.forEach( function(t) {
+         if ( ! target.types.contains( t ) )
+         {
+            return false;
+         }
+      } );
+      return true;
+   }
+
+   getEffectivityAgainstTarget( target )
+   {
+      return this.types.reduce( (a, b) => a.getEffectivityAgainstTarget( target ) * b.getEffectivityAgainstTarget( target ) );
+   }
+   getEffectivityAgainstTargets( targets )
+   {
+      return sum(
+            this.types.map( function(t) {
+               return t.getEffectivityAgainstTargets( targets );
+            })
+         );
+   }
+   static generateFromList( list )
+   {
+      let output = [];
+
+      list.forEach( t =>
+      {
+         output.push( t );
+      });
+
+      list.forEach( f => {
+         list.forEach( s => {
+            if ( ! f.equals( s ) )
+            {
+               const newDT = new DoubleType( f, s );
+               if ( output.map( function(e){ return e.equals( newDT ) } ).length == 0 )
+               {
+                  output.push( newDT );
+               }
+            }
+         });
+      });
+      return output;
+   }
+}
+
 class TypeIcon extends HTMLEntity
 {
    constructor( type )
@@ -470,11 +291,22 @@ class TypeIcon extends HTMLEntity
    get type() { return this._type; }
 }
 
+class DoubleTypeIcon extends HTMLEntity
+{
+   constructor( type )
+   {
+      super().addClass("doubleType");
+      this.addChildren( [ new TypeIcon( type.types[0] ), new TypeIcon( type.types[1] ) ] );
+      this._type = type;
+   }
+   get type() { return this._type; }
+}
+
 class Button extends TypeIcon
 {
    constructor( type )
    {
-      super( type );
+      super( type ).addClass("button");
       const self = this;
       self._isSelected = false;
 
@@ -505,6 +337,31 @@ class Button extends TypeIcon
          console.error("Button.selected: trying to set selected to non-bool value ");
          console.log( "value", value );
       }
+   }
+}
+
+class ControlInput extends HTMLEntity
+{
+   constructor( type, name, parentOnClick = undefined, checked = false )
+   {
+      super({type:"input"}).addClass("checkBox");
+      this.element.type = type;
+      this.element.name = name;
+      this.element.checked = (checked) ? "checked" : undefined;
+      this.addOnClickFunc( parentOnClick );
+   }
+   get isChecked()
+   {
+      return Boolean( this.element.checked );
+   }
+}
+
+class ControlText extends HTMLEntity
+{
+   constructor( text )
+   {
+      super({type:"text"});
+      this.element.innerHTML = text;
    }
 }
 
@@ -541,6 +398,34 @@ class ControlBar extends HTMLEntity
                            .addOnClickFunc( function ( button ) { onButtonClick( button ); } )
                       );
       });
+
+      this._setEffectiveOnlySource = new ControlInput( "checkbox", "effectiveSource", function() { self.onUpdate(self); }, true );
+      this._setEffectiveOnlyTarget = new ControlInput( "checkbox", "effectiveTarget", function() { self.onUpdate(self); }, true );
+
+      this.addChildren( [ new ControlText("<br>effective: ") ] );
+      this.addChildren( [ this._setEffectiveOnlySource, new ControlText("source") ] );
+      this.addChildren( [ this._setEffectiveOnlyTarget, new ControlText("target") ] );
+   }
+   get sourceOnlyEffective()
+   {
+      return this._setEffectiveOnlySource.isChecked;
+   }
+   get targetOnlyEffective()
+   {
+      return this._setEffectiveOnlyTarget.isChecked;
+   }
+   get selectedType()
+   {
+      const types = this.selectedButtons.map( function (b) { return b.type } );
+      if( types.length > 1 )
+      {
+         return new DoubleType( types );
+      }
+      else if( types.length > 0 )
+      {
+         return types[0];
+      }
+      return undefined;
    }
    unselectButton( button )
    {
@@ -558,106 +443,183 @@ class ControlBar extends HTMLEntity
    }
 }
 
-class Result
+class ResultLineSpacer extends HTMLEntity
 {
-   constructor( mapPoints, effectivity = 1 )
+   constructor( content )
    {
-      this.mapPoints = mapPoints;
+      super().addClass("resultLineSpacer");
+      this.element.innerHTML = content;
+   }
+}
+
+class ResultLineEffectivity extends HTMLEntity
+{
+   constructor( effectivity )
+   {
+      super().addClass("resultLineEffectivity");
+      super.element.innerHTML = effectivity;
       this.effectivity = effectivity;
    }
 }
-
-
-class MapPoint
+class ResultLineTypeContainer extends HTMLEntity
 {
-   constructor( types )
+   constructor()
    {
-      this.types = types;
+      super().addClass("resultLineTypeContainer");
+      this._types = [];
    }
-
-   get effectiveTo()
+   get types()
    {
-      let results = [];
-
-      
-   
-      return Object.freeze( results );
-
+      return this._types;
    }
-   get effectiveFrom()
+   addType( type )
    {
-      let results = [];
-
-      for ( const s in sources )
+      console.log("ResultLineTypeContainer.addType");
+      console.log("type",type);
+      const existing = this._types.filter( (t) => { return type.equals( t ); } );
+      console.log("existing",existing);
+      if ( existing && existing.length == 0 )
       {
-         const sourceType = sources[s];
-         const effectivity = sourceType.getEffectivityAgainstTargets( this.types );
-         let match = results.filter( function(e) { return e.effectivity == effectivity } )[0];
-
-         if ( !match )
-         {
-            results.push( new Result( new ResultMapPoint([sourceType]), effectivity ) );
-         }
-         else
-         {
-            match.mapPoints.push( new ResultMapPoint([sourceType]) );
-         }
+         this._types.push( type );
+         this.addChild( new TypeIcon( type ) );
       }
-
-      return Object.freeze( results );
    }
 }
 
+class ResultLine extends HTMLEntity
+{
+   constructor( effectivity, effectivitySide = 0 )
+   {
+      super().addClass("resultLine");
+      if ( ! effectivitySide == ResultLine.EFFECTIVITY_RIGHT_COL )
+      {
+         this.addClass( "alignRight" );
+      }
+      console.log("ResultLine creating", [ effectivity, effectivitySide ]);
+      this._typeContainer = new ResultLineTypeContainer();
+      this.effectivity = effectivity;
+
+      if ( ! effectivitySide == ResultLine.EFFECTIVITY_RIGHT_COL )
+      {
+         this.addChild( this._typeContainer );
+         this.addChild( new ResultLineEffectivity( this.effectivity ) );
+      }
+      else
+      {
+         this.addChild( new ResultLineEffectivity( this.effectivity ) );
+         this.addChild( this._typeContainer );
+      }
+   }
+   get types()
+   {
+      return this._typeContainer.types;
+   }
+   addType( type )
+   {
+      this._typeContainer.addType( type );
+      return this;
+   }
+
+   static get EFFECTIVITY_RIGHT_COL() { return 1; }
+}
 
 class ResultColumn extends HTMLEntity
 {
-   constructor( sourceResult )
+   constructor( type, sources, targets, onlyEffective )
    {
-      super().addClass("resultLine");
-      let results = [];
+      super().addClass("resultColumn");
+      console.info("ResultColumn creating", [ type,sources,targets, onlyEffective ]);
 
-      for ( const s in sources )
+      this._resultLines = [];
+      this.mode = undefined;
+      this.type = type;
+      this._onlyEffective = onlyEffective;
+
+      if ( sources.length > 0 )
       {
-         const sourceType = sources[s];
-         const effectivity = sourceType.getEffectivityAgainstTargets( this.types );
-         let match = results.filter( function(e) { return e.effectivity == effectivity } )[0];
-
-         if ( !match )
+         console.log("SOURCE column");
+         sources.forEach( (s) => {
+            console.log(this.type,"-->",t);
+            this.addToResults(
+               new ResultLine( s.getEffectivityAgainstTarget( this.type ) )
+                  .addType( s ) )
+         } );  
+      }
+      else
+      {
+         console.log("TARGET column");
+         targets.forEach( (t) =>
          {
-            results.push( new Result( new ResultMapPoint([sourceType]), effectivity ) );
+            console.log(this.type,"-->",t);
+            this.addToResults(
+               new ResultLine( this.type.getEffectivityAgainstTarget( t ),
+                               ResultLine.EFFECTIVITY_RIGHT_COL )
+                  .addType( t ) );
+         } );
+      }
+
+      this.addChildren( this.resultLines.sort( (a, b) => { return b.effectivity - a.effectivity; } ) );
+
+      console.log();
+   }
+   get resultLines() { return this._resultLines; }
+   addToResults( newResultLine )
+   {
+      if ( newResultLine.effectivity > 1 || ! this._onlyEffective )
+      {
+         let match = this.resultLines.filter( function(r) { return r.effectivity == newResultLine.effectivity } )[0];
+
+         if ( match )
+         {
+            match.addType( newResultLine.types[0] );
          }
          else
          {
-            match.mapPoints.push( new ResultMapPoint([sourceType]) );
+            this.resultLines.push( newResultLine );
+            this.addChild( newResultLine );
          }
       }
    }
 }
+
 class ResultBox extends HTMLEntity
 {
-   constructor( selected )
+   constructor( type = undefined, sourceColumn = undefined, targetColumn = undefined )
    {
       super().addClass("resultBox");
-      const selectedMapPoint = new MapPoint( selected );
-      const resultsFrom = selectedMapPoint.effectiveFrom;
-      console.log( resultsFrom );
+      console.info("ResultBox creating", [ type,sourceColumn,targetColumn ] );
 
-      this.targetLine = new ResultColumn();
-      this.sourceLine = new ResultColumn();
-      super.addChildren( [ this.targetLine, this.sourceLine ] );
+      if ( sourceColumn )
+      {
+         this.addChild( sourceColumn );
+         this.addChild( new ResultLineSpacer( "-->" ) );
+      }
+      if ( type )
+      {
+         if ( type instanceof DoubleType )
+         {
+            this.addChild( new DoubleTypeIcon( type ) )
+         }
+         else
+         {
+            this.addChild( new TypeIcon( type ) )
+         }
+      }
+      if ( targetColumn )
+      {
+         this.addChild( new ResultLineSpacer( "-->" ) );
+         this.addChild( targetColumn );
+      }
+      console.log();
    }
-   static get MODE_FROM_SOURCES() { return 1; }
-   static get MODE_TO_TARGETS() { return 2; }
-
-
-
 }
 
 class ResultContainer extends HTMLEntity
 {
-   constructor()
+   constructor( )
    {
       super().addClass("resultContainer");
+      console.log("ResultContainer creating");
    }
 }
 
@@ -666,35 +628,65 @@ function init()
    let body = document.body;
    let controls = new ControlBar();
    let results = new ResultContainer();
-   let resultBox1 = undefined;
-   let resultBox2 = undefined;
 
    controls.onUpdate = function( bar )
    {
+      console.info("init onUpdate");
       results.empty();
-      results.addChildren( new ResultBox() );
+      const selected = bar.selectedType;
+      console.log("selected",selected);
+      if ( selected )
+      {
+         results.addChild( new ResultBox( selected,
+                                          new ResultColumn( selected, TYPES, [], controls.sourceOnlyEffective ) ) );
+
+         if ( selected instanceof DoubleType )
+         {
+            results.addChild(
+               new ResultBox( selected.types[0],
+                              undefined,
+                              new ResultColumn( selected.types[0], [], DoubleType.generateFromList( TYPES ), controls.targetOnlyEffective )
+                            ) );
+            results.addChild(
+               new ResultBox( selected.types[1],
+                              undefined,
+                              new ResultColumn( selected.types[1], [], DoubleType.generateFromList( TYPES ), controls.targetOnlyEffective )
+               ) );
+         }
+         else
+         {
+            results.addChild(
+               new ResultBox( selected,
+                              undefined,
+                              new ResultColumn( selected, [], DoubleType.generateFromList( TYPES ), controls.targetOnlyEffective )
+                            ) );
+         }
+      }
    }
 
    body.appendChild(controls.element);
    body.appendChild(results.element);
 }
+
+console.log = function() {}
+//console.info = function() {}
+
 </script>
 <style>
 body {
-   background-color: #eee;
+   background-color: #dadae1;
 }
-#comparisonContainer {
-   width: 100%;
+#resultContainer {
+   /*width: 100%;
    text-align: center;
    margin-top: 20px;
-   background-color: #fff;
+   background-color: #fff;*/
 }
 #innerComparisonContainer {
    margin: 0; padding: 0;
 }
 .typeIcon {
    display: inline-block;
-   cursor: pointer;
    color: white;
    font-size: 25px;
    margin: 4px;
@@ -705,37 +697,58 @@ body {
    2px -2px 2px black,
 	-2px -2px 2px black;
 }
+.doubleType {
+   display: inline-block;
+   margin: 4px;
+}
+.doubleType * {
+   margin: 0;
+}
 .controlBar {
    display: block;
+   padding: 12px;
+   background-color: white;
+}
+.button {
+   cursor: pointer;
+   border: 4px solid white;
 }
 .selectedElement {
-   border: 5px dashed white;
+   border: 4px dashed white;
 }
-.comparisonLine{
+.resultBox{
    display: block;
-   text-align: right;
+   background-color: white;
+   padding: 12px;
+   margin-top: 24px;
 }
-.comparisonLineSpacer{
-   display: inline-block;
-   padding: 4px;
-}
-.comparisonLineIcon{
-   display: inline-block;
-   padding: 4px;
-}
-.comparisonLineEfficiency{
-   display: inline-block;
-   padding: 4px;
-   width: 2em;
-   font-weight: bold;
-}
-.comparisonBox{
+.resultColumn{
    display: inline-block;
    vertical-align: middle;
 }
-.comparisonSpacerBox{
+.resultLine{
+   display: block;
+   text-align: left;
+}
+.alignRight{
+   text-align: right;
+}
+.resultLineTypeContainer
+{
    display: inline-block;
-   padding: 10px;
+}
+.resultLineEffectivity
+{
+   display: inline-block;
+   width: 2em;
+   font-weight: bold;
+}
+.resultLineSpacer{
+   display: inline-block;
+   padding: 4px;
+}
+.resultLineIcon{
+   display: inline-block;
 }
 .bug {      background-color: #a8b820; }
 .dark {     background-color: #705848; }
