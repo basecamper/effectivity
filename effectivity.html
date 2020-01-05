@@ -230,17 +230,22 @@ class DoubleType extends HTMLEntity
 
    equals( target )
    {
-      if ( ! target instanceof DoubleType )
+      console.warn("DoubleType.equals ", this, target);
+      if ( target instanceof DoubleType )
       {
-         return false;
-      }
-      this.types.forEach( function(t) {
-         if ( ! target.types.contains( t ) )
+         for ( t in target.types )
          {
-            return false;
+            if ( ! this.types.includes( target.types[t] ) )
+            {
+               console.info( "DoubleType.equals - DT not matching" );
+               return false
+            }
          }
-      } );
-      return true;
+         console.info( "DoubleType.equals - DT matching",this,target );
+         return true;
+      }
+      console.info( "DoubleType.equals - no DT",this,target );
+      return false;
    }
 
    getEffectivityAgainstTarget( target )
@@ -268,14 +273,16 @@ class DoubleType extends HTMLEntity
          list.forEach( s => {
             if ( ! f.equals( s ) )
             {
-               const newDT = new DoubleType( f, s );
-               if ( output.map( function(e){ return e.equals( newDT ) } ).length == 0 )
+               const newDT = new DoubleType( [f, s] );
+               const match = output.filter( function(e){ return e.equals( newDT ) } )[0];
+               if ( ! match )
                {
                   output.push( newDT );
                }
             }
          });
       });
+      console.warn("DoubleType.generateFromList: ", output);
       return output;
    }
 }
@@ -309,10 +316,6 @@ class Button extends TypeIcon
       super( type ).addClass("button");
       const self = this;
       self._isSelected = false;
-
-      /*this.addOnClickFunc( function ( e ) {
-         
-      } );*/
    }
    get selected()
    {
@@ -399,12 +402,18 @@ class ControlBar extends HTMLEntity
                       );
       });
 
+      this._createDoubleTypes = new ControlInput( "checkbox", "createDoubleTypes", function() { self.onUpdate(self); }, false );
       this._setEffectiveOnlySource = new ControlInput( "checkbox", "effectiveSource", function() { self.onUpdate(self); }, true );
       this._setEffectiveOnlyTarget = new ControlInput( "checkbox", "effectiveTarget", function() { self.onUpdate(self); }, true );
 
       this.addChildren( [ new ControlText("<br>effective: ") ] );
       this.addChildren( [ this._setEffectiveOnlySource, new ControlText("source") ] );
       this.addChildren( [ this._setEffectiveOnlyTarget, new ControlText("target") ] );
+      this.addChildren( [ this._createDoubleTypes, new ControlText("doubleTypes") ] );
+   }
+   get createDoubleTypes()
+   {
+      return this._createDoubleTypes.isChecked;
    }
    get sourceOnlyEffective()
    {
@@ -480,8 +489,10 @@ class ResultLineTypeContainer extends HTMLEntity
       console.log("existing",existing);
       if ( existing && existing.length == 0 )
       {
+
          this._types.push( type );
-         this.addChild( new TypeIcon( type ) );
+
+         this.addChild( (type instanceof DoubleType) ? new DoubleTypeIcon( type ) : new TypeIcon( type ) );
       }
    }
 }
@@ -640,17 +651,19 @@ function init()
          results.addChild( new ResultBox( selected,
                                           new ResultColumn( selected, TYPES, [], controls.sourceOnlyEffective ) ) );
 
+         const allGeneratedDoubleTypes = (controls.createDoubleTypes) ? DoubleType.generateFromList( TYPES ) : TYPES;
+
          if ( selected instanceof DoubleType )
          {
             results.addChild(
                new ResultBox( selected.types[0],
                               undefined,
-                              new ResultColumn( selected.types[0], [], DoubleType.generateFromList( TYPES ), controls.targetOnlyEffective )
+                              new ResultColumn( selected.types[0], [], allGeneratedDoubleTypes, controls.targetOnlyEffective )
                             ) );
             results.addChild(
                new ResultBox( selected.types[1],
                               undefined,
-                              new ResultColumn( selected.types[1], [], DoubleType.generateFromList( TYPES ), controls.targetOnlyEffective )
+                              new ResultColumn( selected.types[1], [], allGeneratedDoubleTypes, controls.targetOnlyEffective )
                ) );
          }
          else
@@ -658,7 +671,7 @@ function init()
             results.addChild(
                new ResultBox( selected,
                               undefined,
-                              new ResultColumn( selected, [], DoubleType.generateFromList( TYPES ), controls.targetOnlyEffective )
+                              new ResultColumn( selected, [], allGeneratedDoubleTypes, controls.targetOnlyEffective )
                             ) );
          }
       }
@@ -669,7 +682,7 @@ function init()
 }
 
 console.log = function() {}
-//console.info = function() {}
+console.info = function() {}
 
 </script>
 <style>
