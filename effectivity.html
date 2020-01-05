@@ -230,7 +230,7 @@ class DoubleType extends HTMLEntity
 
    equals( target )
    {
-      console.warn("DoubleType.equals ", this, target);
+      console.info("DoubleType.equals ", this, target);
       if ( target instanceof DoubleType )
       {
          for ( t in target.types )
@@ -269,20 +269,17 @@ class DoubleType extends HTMLEntity
          output.push( t );
       });
 
-      list.forEach( f => {
-         list.forEach( s => {
-            if ( ! f.equals( s ) )
+      for ( let first = 0; first < list.length; first++ )
+      {
+         for ( let second = 0; second < list.length; second++ )
+         {
+            if( second > first )
             {
-               const newDT = new DoubleType( [f, s] );
-               const match = output.filter( function(e){ return e.equals( newDT ) } )[0];
-               if ( ! match )
-               {
-                  output.push( newDT );
-               }
+               const newDT = new DoubleType( [list[first], list[second]] );
+               output.push( newDT );
             }
-         });
-      });
-      console.warn("DoubleType.generateFromList: ", output);
+         }
+      }
       return output;
    }
 }
