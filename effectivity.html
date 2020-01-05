@@ -263,14 +263,12 @@ class DoubleType extends HTMLEntity
    static generateFromList( list )
    {
       let output = [];
-
-      list.forEach( t =>
-      {
-         output.push( t );
-      });
+      
+      list.forEach( t => { output.push( t ); });
 
       for ( let first = 0; first < list.length; first++ )
       {
+         output.push( list[first] );
          for ( let second = 0; second < list.length; second++ )
          {
             if( second > first )
@@ -573,7 +571,9 @@ class ResultColumn extends HTMLEntity
    get resultLines() { return this._resultLines; }
    addToResults( newResultLine )
    {
-      if ( newResultLine.effectivity > 1 || ! this._onlyEffective )
+      if (    ( newResultLine.types[0] instanceof DoubleType && newResultLine.effectivity > 2 )
+           || ( newResultLine.types[0] instanceof Type && newResultLine.effectivity > 1 )
+           || ! this._onlyEffective )
       {
          let match = this.resultLines.filter( function(r) { return r.effectivity == newResultLine.effectivity } )[0];
 
@@ -600,7 +600,7 @@ class ResultBox extends HTMLEntity
       if ( sourceColumn )
       {
          this.addChild( sourceColumn );
-         this.addChild( new ResultLineSpacer( "-->" ) );
+         this.addChild( new ResultLineSpacer( "&rarr;" ) );
       }
       if ( type )
       {
@@ -615,7 +615,7 @@ class ResultBox extends HTMLEntity
       }
       if ( targetColumn )
       {
-         this.addChild( new ResultLineSpacer( "-->" ) );
+         this.addChild( new ResultLineSpacer( "&rarr;" ) );
          this.addChild( targetColumn );
       }
       console.log();
@@ -627,7 +627,6 @@ class ResultContainer extends HTMLEntity
    constructor( )
    {
       super().addClass("resultContainer");
-      console.log("ResultContainer creating");
    }
 }
 
@@ -686,12 +685,6 @@ console.info = function() {}
 body {
    background-color: #dadae1;
 }
-#resultContainer {
-   /*width: 100%;
-   text-align: center;
-   margin-top: 20px;
-   background-color: #fff;*/
-}
 #innerComparisonContainer {
    margin: 0; padding: 0;
 }
@@ -726,36 +719,48 @@ body {
 .selectedElement {
    border: 4px dashed white;
 }
+.resultContainer {
+   width: 100%;
+   margin-top: 20px;
+}
 .resultBox{
    display: block;
    background-color: white;
-   padding: 12px;
    margin-top: 24px;
+   padding: 14px;
+   white-space: nowrap;
 }
 .resultColumn{
    display: inline-block;
    vertical-align: middle;
+   white-space: nowrap;
 }
 .resultLine{
    display: block;
-   text-align: left;
+   padding-top: 8px;
+   padding-bottom: 8px;
 }
 .alignRight{
    text-align: right;
 }
 .resultLineTypeContainer
 {
-   display: inline-block;
+   display: inline;
+   white-space: initial;
+   vertical-align: middle;
 }
 .resultLineEffectivity
 {
    display: inline-block;
    width: 2em;
    font-weight: bold;
+   text-align: center;
+   vertical-align: middle;
 }
 .resultLineSpacer{
    display: inline-block;
-   padding: 4px;
+   padding-left: 8px;
+   padding-right: 8px;
 }
 .resultLineIcon{
    display: inline-block;
