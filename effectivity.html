@@ -4,19 +4,22 @@
 <head>
 <script type="text/javascript">
 
-HTMLElement.prototype.entity = undefined;
+console.info = function() {}
+console.log = function() {}
+
+HTMLElement.prototype.entity = {};
 
 const SELECTED_ELEMENT_CLASS = "selectedElement";
 const INVISIBLE_ELEMENT_CLASS = "invisibleElement";
-const effectivityValueGood = 2;
-const effectivityValueNeutral = 1;
-const effectivityValueBad = 0.5;
-const effectivityValueVeryBad = 0;
+const EFFECTIVITY_GOOD = 2;
+const EFFECTIVITY_NEUTRAL = 1;
+const EFFECTIVITY_BAD = 0.5;
+const EFFECTIVITY_VERY_BAD = 0;
 
 class Type {
-   constructor( name, css )
+   constructor( name, className )
    {
-      this.css = css;
+      this.className = className;
       this.name = name;
       this.good = undefined;
       this.bad = undefined;
@@ -34,10 +37,10 @@ class Type {
    {
       if ( target instanceof Type )
       {
-         if ( this.good.includes( target ) ) return effectivityValueGood;
-         else if ( this.bad.includes( target ) ) return effectivityValueBad;
-         else if ( this.veryBad.includes( target ) ) return effectivityValueVeryBad;
-         else return effectivityValueNeutral;
+         if ( this.good.includes( target ) ) return EFFECTIVITY_GOOD;
+         else if ( this.bad.includes( target ) ) return EFFECTIVITY_BAD;
+         else if ( this.veryBad.includes( target ) ) return EFFECTIVITY_VERY_BAD;
+         else return EFFECTIVITY_NEUTRAL;
       }
       else if ( target instanceof DoubleType )
       {
@@ -50,7 +53,7 @@ class Type {
    }
    getEffectivityAgainstTargets( targets )
    {
-      let effectivity = effectivityValueNeutral;
+      let effectivity = EFFECTIVITY_NEUTRAL;
       for ( t in targets )
       {
          effectivity *= this.getEffectivityAgainstTarget( targets[t] );
@@ -64,6 +67,61 @@ class Type {
       this.veryBad = veryBad;
    }
 }
+
+class DoubleType
+{
+   constructor( types )
+   {
+      this._types = types;
+   }
+   get types() { return this._types; }
+
+   equals( target )
+   {
+      if ( target instanceof DoubleType )
+      {
+         for ( t in target.types )
+         {
+            if ( ! this.types.includes( target.types[t] ) )
+            {
+               return false
+            }
+         }
+         return true;
+      }
+      return false;
+   }
+
+   getEffectivityAgainstTarget( target )
+   {
+      return this.types.reduce( (a, b) => a.getEffectivityAgainstTarget( target ) * b.getEffectivityAgainstTarget( target ) );
+   }
+   getEffectivityAgainstTargets( targets )
+   {
+      return this.types.reduce( (a, b) => a.getEffectivityAgainstTargets( targets ) * b.getEffectivityAgainstTargets( targets ) );
+   }
+   static generateFromList( list )
+   {
+      let output = [];
+
+      list.forEach( t => { output.push( t ); });
+
+      for ( let first = 0; first < list.length; first++ )
+      {
+         output.push( list[first] );
+         for ( let second = 0; second < list.length; second++ )
+         {
+            if( second > first )
+            {
+               const newDT = new DoubleType( [list[first], list[second]] );
+               output.push( newDT );
+            }
+         }
+      }
+      return output;
+   }
+}
+
 
 let Bug = new Type("Bug", "bug");
 let Dark = new Type("Dark", "dark");
@@ -83,6 +141,7 @@ let Psychic = new Type("Psychic", "psychic");
 let Rock = new Type("Rock", "rock");
 let Steel = new Type("Steel", "steel");
 let Water = new Type("Water", "water");
+
 
 // ----------------------- GOOD ---------------------------------- BAD --------------------------------------------------- VERY BAD ---
 Bug.setEffectivity(      [ Dark, Grass, Psychic                ],[ Fairy, Fighting, Fire, Flying, Ghost, Poison, Steel ],[          ]);
@@ -109,6 +168,93 @@ const TYPES = [ Bug,Dark,Dragon,Electric,Fairy,Fighting,Fire,Flying,Ghost,Grass,
 
 for ( t in TYPES ) Object.freeze( TYPES[t] );
 
+
+// ---- exported values: --------------------------------------------------------------------------------------------------------------
+const pokemonList = [
+
+
+
+];
+// ------------------------------------------------------------------------------------------------------------------------------------
+
+let POKEMON = [];
+class Pokemon
+{
+   constructor( names, types, info = undefined, evolvesInto = [] )
+   {
+      this._names = names;
+      this._types = types;
+      this._info = info;
+      this._evolvesInto = evolvesInto.map((n) => {
+         return Pokemon.getByName( n )
+             || n;
+      });
+   }
+   getNamesMatchingPart( part )
+   {
+      return this._names.filter( (n) => { return n.toLowerCase().includes( part.toLowerCase() ); } )
+   }
+   get name() { return this._names[0]; }
+   get info() { return this._info; }
+   get names() { return this._names; }
+   get types() { return this._types; }
+   get evolvesInto() { return this._evolvesInto; }
+   addName( name ) { this._names.push(name) }
+
+   static getByName( name )
+   {
+      for( const p in POKEMON )
+      {
+         if ( POKEMON[p].names.includes( name ) )
+         {
+            return POKEMON[p];
+         }
+      }
+      return undefined;
+   }
+   static findMatchingNames( part )
+   {
+      let result = [];
+      POKEMON.forEach( p => {
+         result = result.concat( p.getNamesMatchingPart( part ) );
+      });
+      return result.sort( (a,b) => { return a.localeCompare(b) } );
+   }
+   static addPokemonToList( pokemon )
+   {
+      if ( pokemon.names.filter( n => { return Pokemon.getByName( n ) } ).length == 0 )
+      {
+         POKEMON.push( pokemon );
+      }
+   }
+   static exportList()
+   {
+      let result = "";
+      POKEMON.sort( (a,b) => { return a.names[0].localeCompare(b.names[0]) } )
+             .forEach( (p,i) => { result += (i > 0) ? ",\n" : "";
+                                  result += "[[";
+                                  p.names.forEach( (n,ni) => { result += (ni > 0) ? "," : ""; result += "\""+n+"\""; });
+                                  result += "],";
+                                  result += "[";
+                                  p.types.forEach( (t,ti) => { result += (ti > 0) ? "," : ""; result += ""+t.name+""; });
+                                  result += "],";
+                                  result += (p.info) ? ",["+p.info+"]" : ",";
+                                  result += "[";
+                                  p.evolvesInto.forEach( (t,te) => { result += (te > 0) ? ",\"" : "\""; result += ""+((t instanceof Pokemon) ? t.name : t)+"\""; });
+                                  result += "]]";
+                                });
+      console.error(result);
+
+      return result;
+   }
+   static parseCreateFromList( list )
+   {
+      return list.map( (item) => { return new Pokemon( item[0], item[1], item[2] || undefined, item[3] || [] ); } );
+   }
+}
+POKEMON = Pokemon.parseCreateFromList( pokemonList );
+
+// ------------------------------------------------------------------------------------------------------------------------------------
 class HTMLEntity
 {
    constructor( args = {} )
@@ -181,16 +327,10 @@ class HTMLEntity
       children.forEach(e => { this.addChild( e ) });
       return this;
    }
-   remove()
-   {
-      this.children.forEach(c => { c.removeFrom( this.children );
-                                   c.remove(); });
-      delete this;
-   }
    empty( parent = undefined )
    {
-      this.children.forEach(c => { c.removeFrom( this.children );
-                                   c.remove(); });
+      this.children.forEach((c) => { c.removeFrom( this.children );
+                                     c.empty(); });
       this.element.innerHTML = "";
       return this;
    }
@@ -218,75 +358,20 @@ class HTMLEntity
    }
 }
 
-class DoubleType extends HTMLEntity
-{
-   constructor( types )
-   {
-      super().addClass("doubleType");
-      this.addChild( new TypeIcon( [ types[0], types[1] ] ) );
-      this._types = types;
-   }
-   get types() { return this._types; }
+// ------------------------------------------------------------------------------------------------------------------------------------
 
-   equals( target )
-   {
-      console.info("DoubleType.equals ", this, target);
-      if ( target instanceof DoubleType )
-      {
-         for ( t in target.types )
-         {
-            if ( ! this.types.includes( target.types[t] ) )
-            {
-               console.info( "DoubleType.equals - DT not matching" );
-               return false
-            }
-         }
-         console.info( "DoubleType.equals - DT matching",this,target );
-         return true;
-      }
-      console.info( "DoubleType.equals - no DT",this,target );
-      return false;
-   }
+//   _   _ _____ __  __ _     _____       _   _ _   _
+//  | | | |_   _|  \/  | |   | ____|_ __ | |_(_) |_(_) ___  ___ _
+//  | |_| | | | | |\/| | |   |  _| | '_ \| __| | __| |/ _ \/ __(_)
+//  |  _  | | | | |  | | |___| |___| | | | |_| | |_| |  __/\__ \_
+//  |_| |_| |_| |_|  |_|_____|_____|_| |_|\__|_|\__|_|\___||___(_)
 
-   getEffectivityAgainstTarget( target )
-   {
-      return this.types.reduce( (a, b) => a.getEffectivityAgainstTarget( target ) * b.getEffectivityAgainstTarget( target ) );
-   }
-   getEffectivityAgainstTargets( targets )
-   {
-      return sum(
-            this.types.map( function(t) {
-               return t.getEffectivityAgainstTargets( targets );
-            })
-         );
-   }
-   static generateFromList( list )
-   {
-      let output = [];
-      
-      list.forEach( t => { output.push( t ); });
-
-      for ( let first = 0; first < list.length; first++ )
-      {
-         output.push( list[first] );
-         for ( let second = 0; second < list.length; second++ )
-         {
-            if( second > first )
-            {
-               const newDT = new DoubleType( [list[first], list[second]] );
-               output.push( newDT );
-            }
-         }
-      }
-      return output;
-   }
-}
-
+// ------------------------------------------------------------------------------------------------------------------------------------
 class TypeIcon extends HTMLEntity
 {
    constructor( type )
    {
-      super().addClass("typeIcon").addClass( type.css );
+      super().addClass("typeIcon").addClass( type.className );
       super.element.innerHTML = type.name;
       this._type = type;
    }
@@ -335,115 +420,6 @@ class Button extends TypeIcon
          console.error("Button.selected: trying to set selected to non-bool value ");
          console.log( "value", value );
       }
-   }
-}
-
-class ControlInput extends HTMLEntity
-{
-   constructor( type, name, parentOnClick = undefined, checked = false )
-   {
-      super({type:"input"}).addClass("checkBox");
-      this.element.type = type;
-      this.element.name = name;
-      this.element.checked = (checked) ? "checked" : undefined;
-      this.addOnClickFunc( parentOnClick );
-   }
-   get isChecked()
-   {
-      return Boolean( this.element.checked );
-   }
-}
-
-class ControlText extends HTMLEntity
-{
-   constructor( text )
-   {
-      super({type:"text"});
-      this.element.innerHTML = text;
-   }
-}
-
-class ControlBar extends HTMLEntity
-{
-   constructor( onUpdate = undefined )
-   {
-      super().addClass("controlBar");
-
-      this.selectedButtons = [];
-      this.onUpdate = onUpdate;
-      const self = this;
-
-      const onButtonClick = function( button )
-      {
-         if ( self.selectedButtons.includes( button ) )
-         {
-            self.unselectButton( button );
-         }
-         else if ( self.selectedButtons.length < 2 )
-         {
-            self.selectButton( button );
-         }
-         else {
-            self.unselectButton( self.selectedButtons[0] );
-            self.selectButton( button );
-         }
-
-         self.onUpdate( self );
-      }
-
-      TYPES.forEach( type => {
-         this.addChild( new Button( type )
-                           .addOnClickFunc( function ( button ) { onButtonClick( button ); } )
-                      );
-      });
-
-      this._createDoubleTypes = new ControlInput( "checkbox", "createDoubleTypes", function() { self.onUpdate(self); }, false );
-      this._setEffectiveOnlySource = new ControlInput( "checkbox", "effectiveSource", function() { self.onUpdate(self); }, true );
-      this._setEffectiveOnlyTarget = new ControlInput( "checkbox", "effectiveTarget", function() { self.onUpdate(self); }, true );
-
-      this.addChildren( [ new ControlText("<br>effective: ") ] );
-      this.addChildren( [ this._setEffectiveOnlySource, new ControlText("source") ] );
-      this.addChildren( [ this._setEffectiveOnlyTarget, new ControlText("target") ] );
-      this.addChildren( [ this._createDoubleTypes, new ControlText("doubleTypes") ] );
-   }
-   get createDoubleTypes()
-   {
-      return this._createDoubleTypes.isChecked;
-   }
-   get sourceOnlyEffective()
-   {
-      return this._setEffectiveOnlySource.isChecked;
-   }
-   get targetOnlyEffective()
-   {
-      return this._setEffectiveOnlyTarget.isChecked;
-   }
-   get selectedType()
-   {
-      const types = this.selectedButtons.map( function (b) { return b.type } );
-      if( types.length > 1 )
-      {
-         return new DoubleType( types );
-      }
-      else if( types.length > 0 )
-      {
-         return types[0];
-      }
-      return undefined;
-   }
-   unselectButton( button )
-   {
-      button.removeFrom( this.selectedButtons );
-      button.selected = false;
-   }
-   selectButton( button )
-   {
-      if ( this.selectedButtons.length >= 2 )
-      {
-         this.unselectButton( this.selectedButtons[0] )
-      }
-      button.pushTo( this.selectedButtons );
-      button.selected = true;
    }
 }
 
@@ -505,7 +481,11 @@ class ResultLine extends HTMLEntity
       this._typeContainer = new ResultLineTypeContainer();
       this.effectivity = effectivity;
 
-      if ( ! effectivitySide == ResultLine.EFFECTIVITY_RIGHT_COL )
+      if ( effectivity == undefined )
+      {
+         this.addChild( this._typeContainer );
+      }
+      else if ( ! effectivitySide == ResultLine.EFFECTIVITY_RIGHT_COL )
       {
          this.addChild( this._typeContainer );
          this.addChild( new ResultLineEffectivity( this.effectivity ) );
@@ -515,6 +495,7 @@ class ResultLine extends HTMLEntity
          this.addChild( new ResultLineEffectivity( this.effectivity ) );
          this.addChild( this._typeContainer );
       }
+
    }
    get types()
    {
@@ -543,25 +524,25 @@ class ResultColumn extends HTMLEntity
 
       if ( sources.length > 0 )
       {
-         console.log("SOURCE column");
          sources.forEach( (s) => {
-            console.log(this.type,"-->",t);
             this.addToResults(
                new ResultLine( s.getEffectivityAgainstTarget( this.type ) )
                   .addType( s ) )
-         } );  
+         } );
       }
-      else
+      else if ( targets.length > 0 )
       {
-         console.log("TARGET column");
          targets.forEach( (t) =>
          {
-            console.log(this.type,"-->",t);
             this.addToResults(
                new ResultLine( this.type.getEffectivityAgainstTarget( t ),
                                ResultLine.EFFECTIVITY_RIGHT_COL )
                   .addType( t ) );
          } );
+      }
+      else
+      {
+         this.resultLines.push( new ResultLine( undefined ).addType( type ) );
       }
 
       this.addChildren( this.resultLines.sort( (a, b) => { return b.effectivity - a.effectivity; } ) );
@@ -584,7 +565,6 @@ class ResultColumn extends HTMLEntity
          else
          {
             this.resultLines.push( newResultLine );
-            this.addChild( newResultLine );
          }
       }
    }
@@ -592,26 +572,19 @@ class ResultColumn extends HTMLEntity
 
 class ResultBox extends HTMLEntity
 {
-   constructor( type = undefined, sourceColumn = undefined, targetColumn = undefined )
+   constructor( typeColumn = undefined, sourceColumn = undefined, targetColumn = undefined )
    {
       super().addClass("resultBox");
-      console.info("ResultBox creating", [ type,sourceColumn,targetColumn ] );
+      console.info("ResultBox creating", [ typeColumn,sourceColumn,targetColumn ] );
 
       if ( sourceColumn )
       {
          this.addChild( sourceColumn );
          this.addChild( new ResultLineSpacer( "&rarr;" ) );
       }
-      if ( type )
+      if ( typeColumn )
       {
-         if ( type instanceof DoubleType )
-         {
-            this.addChild( new DoubleTypeIcon( type ) )
-         }
-         else
-         {
-            this.addChild( new TypeIcon( type ) )
-         }
+         this.addChild( typeColumn );
       }
       if ( targetColumn )
       {
@@ -630,44 +603,345 @@ class ResultContainer extends HTMLEntity
    }
 }
 
+
+class ControlInput extends HTMLEntity
+{
+   constructor( type, name, parentOnClick = undefined, checked = false )
+   {
+      super({type:"input"}).addClass("controlInput");
+      this.element.type = type;
+      this.element.name = name;
+      this.element.checked = (checked) ? "checked" : undefined;
+      this.addOnClickFunc( parentOnClick );
+   }
+   get isChecked()
+   {
+      return Boolean( this.element.checked );
+   }
+}
+
+class SimpleText extends HTMLEntity
+{
+   constructor( text = "", type = "text" )
+   {
+      super({type:type});
+      this.element.innerHTML = text;
+   }
+}
+class SimpleTextInput extends HTMLEntity
+{
+   constructor( parentOnInput = undefined )
+   {
+      super({type:"input"}).addClass("inputField");
+      if( parentOnInput )
+      {
+         this.element.addEventListener("input", parentOnInput );
+      }
+   }
+   get value() { return this.element.value; }
+   set value( v ) { this.element.value = v; }
+}
+
+class ControlSearchOutputItem extends HTMLEntity
+{
+   constructor( onClick, names )
+   {
+      super().addClass("searchOutputItem");
+      this.onClick = onClick;
+   }
+}
+class ControlSearchOutput extends HTMLEntity
+{
+   constructor( onClick, names )
+   {
+      super().addClass("searchOutput");
+      this.onClick = onClick;
+
+
+   }
+   setNames( names )
+   {
+      const self = this;
+      const funct = function(e)
+      {
+         self.onClick(e);
+      }
+
+      names.forEach( name => {
+         this.addChildren( [
+            new SimpleText( name, "div" )
+               .addOnClickFunc( funct )
+               .addClass("button"),
+            new SimpleText( " " )
+         ] );
+      });
+   }
+}
+
+class ControlBar extends HTMLEntity
+{
+   constructor( onUpdate = undefined )
+   {
+      super().addClass("controlBar");
+
+      this.selectedButtons = [];
+      this.selectedPokemon = undefined;
+      this.onUpdate = onUpdate;
+      const self = this;
+      this._buttons = [];
+
+      const onButtonClick = function( button )
+      {
+         if ( self.selectedPokemon )
+         {
+            self.unselectAllButtons();
+            self.selectedPokemon = undefined;
+         }
+         if ( self.selectedButtons.includes( button ) )
+         {
+            self.unselectButton( button );
+         }
+         else if ( self.selectedButtons.length < 2 )
+         {
+            self.selectButton( button );
+         }
+         else {
+            self.unselectButton( self.selectedButtons[0] );
+            self.selectButton( button );
+         }
+         self.onUpdate( self );
+      }
+
+      const onTextInput = function()
+      {
+
+         const foundNames = Pokemon.findMatchingNames( self._searchInput.value );
+
+         self._searchOutput.empty();
+
+         if ( foundNames.length == 1 )
+         {
+
+            selectPokemonByName( foundNames[0] );
+         }
+
+         self._searchOutput.setNames( foundNames );
+
+         self.onUpdate( self );
+      }
+
+      const onSearchOutputClick = function(e)
+      {
+         const name = e.element.innerHTML;
+         selectPokemonByName( name );
+
+         self.onUpdate( self );
+      }
+      const onAddToListClick = function()
+      {
+         const selectedButtons = self.selectedButtons;
+         if ( selectedButtons.length > 0 )
+         {
+            const inputValue = self._searchInput.value;
+            if ( inputValue && inputValue != "" )
+            {
+               const selectedTypes = selectedButtons.map( (b) => { return b.type });
+               if ( confirm( "Really add \""+inputValue+
+                             "\" with type"+( (selectedTypes.length == 2) ? "s "+selectedTypes[0].name+", "+selectedTypes[1].name
+                                                                          : " " + selectedTypes[0].name ) +
+                             " to list?" ) )
+               {
+                  const info = prompt("Info:", "");
+                  const evolveCount = parseInt(prompt("Evolves into? count:", ""));
+                  let evolves = [];
+
+                  if ( evolveCount > 0 )
+                  {
+                     for ( let c = 0; c < evolveCount; c++)
+                     {
+                        evolves.push( prompt("Evolves into("+(c+1)+"):", "") );
+                     }
+                  }
+
+                  self.selectedPokemon = new Pokemon( [inputValue], selectedTypes, info, evolves );
+                  Pokemon.addPokemonToList( self.selectedPokemon );
+                  self._searchInput.value = "";
+                  self.onUpdate( self );
+               }
+            }
+         }
+      }
+      const exportListClick = function()
+      {
+         const exported = Pokemon.exportList();
+         console.error( exported );
+         prompt("const pokemonList = [", exported );
+      }
+
+      const selectPokemonByName = function( name )
+      {
+         self.unselectAllButtons();
+
+         self.selectedPokemon = Pokemon.getByName( name );
+         self._buttons.filter( b => { return self.selectedPokemon.types.includes( b.type ); })
+                     .forEach( b => { self.selectButton( b ); });
+      }
+
+      TYPES.forEach( type => {
+         const button = new Button( type ).addOnClickFunc( function ( button ) { onButtonClick( button ); } );
+         this._buttons.push( button );
+         this.addChild( button );
+      });
+
+      this._createDoubleTypes = new ControlInput( "checkbox", "createDoubleTypes", function() { self.onUpdate(self); }, false );
+      this._setEffectiveOnlySource = new ControlInput( "checkbox", "effectiveSource", function() { self.onUpdate(self); }, false );
+      this._setEffectiveOnlyTarget = new ControlInput( "checkbox", "effectiveTarget", function() { self.onUpdate(self); }, false );
+      this._searchInput = new SimpleTextInput( onTextInput, false );
+      this._addToPokemonList = new ControlInput( "button", "addToList", function() { onAddToListClick(self); } );
+      this._addToPokemonList.element.value = "+";
+      this._exportPokemonList = new ControlInput( "button", "exportList", function() { exportListClick(self); } );
+      this._exportPokemonList.element.value = "e";
+      this._searchOutput = new ControlSearchOutput( onSearchOutputClick );
+
+      this.addChildren([
+         new SimpleText("<br>effective: "),
+         this._setEffectiveOnlySource, new SimpleText("source"),
+         this._setEffectiveOnlyTarget, new SimpleText("target"),
+         this._createDoubleTypes, new SimpleText("doubleTypes<br>"),
+         this._searchInput,
+         this._addToPokemonList,
+         this._exportPokemonList,
+         this._searchOutput ] );
+   }
+
+   get createDoubleTypes()
+   {
+      return this._createDoubleTypes.isChecked;
+   }
+   get sourceOnlyEffective()
+   {
+      return this._setEffectiveOnlySource.isChecked;
+   }
+   get targetOnlyEffective()
+   {
+      return this._setEffectiveOnlyTarget.isChecked;
+   }
+   get selectedType()
+   {
+      const types = this.selectedButtons.map( function (b) { return b.type } );
+      if( types.length > 1 )
+      {
+         return new DoubleType( types );
+      }
+      else if( types.length > 0 )
+      {
+         return types[0];
+      }
+      return undefined;
+   }
+   unselectAllButtons()
+   {
+      while ( this.selectedButtons.length > 0 )
+      {
+         this.unselectButton( this.selectedButtons[0] );
+      }
+   }
+   unselectButton( button )
+   {
+      button.removeFrom( this.selectedButtons );
+      button.selected = false;
+   }
+   selectButton( button )
+   {
+      if ( this.selectedButtons.length >= 2 )
+      {
+         this.unselectButton( this.selectedButtons[0] )
+      }
+      button.pushTo( this.selectedButtons );
+      button.selected = true;
+   }
+}
+
+class PokemonInfoBox extends HTMLEntity
+{
+   constructor( pokemon )
+   {
+      super().addClass("pokemonInfoBox");
+      const names = pokemon.names;
+      const types = pokemon.types;
+
+      this.addChild( new SimpleText( names[0] + " " ) );
+      /*if( names.length > 1 )
+      {
+         this.addChild( new SimpleText( "( " ) );
+         names.forEach( (n,i) => {
+            if ( i > 0 )
+            {
+               this.addChild( new SimpleText( n + " " ) );
+            }
+         });
+         this.addChild( new SimpleText( ") " ) );
+      }
+      types.forEach( t => {
+         this.addChild( new TypeIcon( t ) );
+      });*/
+      if ( pokemon.info )
+      {
+         this.addChild( new SimpleText( " - " ) );
+         this.addChild( new SimpleText( pokemon.info ) );
+      }
+      if ( pokemon.evolvesInto.length > 0 )
+      {
+         this.addChild( new SimpleText( " - evolves into: " ) );
+         pokemon.evolvesInto.forEach( pokemon => {
+            this.addChild( new SimpleText( ( pokemon instanceof Pokemon ) ? pokemon.name : pokemon ) );
+         });
+      }
+   }
+}
+
 function init()
 {
    let body = document.body;
    let controls = new ControlBar();
    let results = new ResultContainer();
 
-   controls.onUpdate = function( bar )
+   controls.onUpdate = function( controlsBar )
    {
-      console.info("init onUpdate");
       results.empty();
-      const selected = bar.selectedType;
-      console.log("selected",selected);
-      if ( selected )
+      const selectedType = controlsBar.selectedType;
+      const selectedPokemon = controlsBar.selectedPokemon;
+      console.info("init onUpdate",[ selectedType, selectedPokemon ]);
+      if ( selectedPokemon )
       {
-         results.addChild( new ResultBox( selected,
-                                          new ResultColumn( selected, TYPES, [], controls.sourceOnlyEffective ) ) );
+         results.addChild( new PokemonInfoBox( selectedPokemon ) );
+      }
+      if ( selectedType )
+      {
+         results.addChild( new ResultBox( new ResultColumn( selectedType, [], [] ),
+                                          new ResultColumn( selectedType, TYPES, [], controls.sourceOnlyEffective ) ) );
 
          const allGeneratedDoubleTypes = (controls.createDoubleTypes) ? DoubleType.generateFromList( TYPES ) : TYPES;
 
-         if ( selected instanceof DoubleType )
+         if ( selectedType instanceof DoubleType )
          {
             results.addChild(
-               new ResultBox( selected.types[0],
+               new ResultBox( new ResultColumn( selectedType.types[0], [], [] ),
                               undefined,
-                              new ResultColumn( selected.types[0], [], allGeneratedDoubleTypes, controls.targetOnlyEffective )
+                              new ResultColumn( selectedType.types[0], [], allGeneratedDoubleTypes, controls.targetOnlyEffective )
                             ) );
             results.addChild(
-               new ResultBox( selected.types[1],
+               new ResultBox( new ResultColumn( selectedType.types[1], [], [] ),
                               undefined,
-                              new ResultColumn( selected.types[1], [], allGeneratedDoubleTypes, controls.targetOnlyEffective )
+                              new ResultColumn( selectedType.types[1], [], allGeneratedDoubleTypes, controls.targetOnlyEffective )
                ) );
          }
          else
          {
             results.addChild(
-               new ResultBox( selected,
+               new ResultBox( new ResultColumn( selectedType, [], [] ),
                               undefined,
-                              new ResultColumn( selected, [], allGeneratedDoubleTypes, controls.targetOnlyEffective )
+                              new ResultColumn( selectedType, [], allGeneratedDoubleTypes, controls.targetOnlyEffective )
                             ) );
          }
       }
@@ -676,9 +950,6 @@ function init()
    body.appendChild(controls.element);
    body.appendChild(results.element);
 }
-
-console.log = function() {}
-console.info = function() {}
 
 </script>
 <style>
@@ -691,7 +962,7 @@ body {
 .typeIcon {
    display: inline-block;
    color: white;
-   font-size: 25px;
+   font-size: 20px;
    margin: 4px;
    padding: 8px;
    text-shadow:
@@ -712,23 +983,34 @@ body {
    padding: 12px;
    background-color: white;
 }
+.searchOutput >* {
+   margin-top: 12px;
+}
 .button {
    cursor: pointer;
-   border: 4px solid white;
+   display: inline-block;
 }
 .selectedElement {
    border: 4px dashed white;
 }
+.pokemonName{
+   background-color: white;
+   font-size: 20px;
+}
+.pokemonInfoBox{
+   background-color: white;
+   padding: 12px;
+   margin-top: 12px;
+}
 .resultContainer {
    width: 100%;
-   margin-top: 20px;
 }
 .resultBox{
-   display: block;
-   background-color: white;
-   margin-top: 24px;
-   padding: 14px;
+   display: inline-block;
    white-space: nowrap;
+   margin-top: 12px;
+   margin-right: 12px;
+   background-color: white;
 }
 .resultColumn{
    display: inline-block;
@@ -737,17 +1019,18 @@ body {
 }
 .resultLine{
    display: block;
-   padding-top: 8px;
-   padding-bottom: 8px;
+   margin-top: 20px;
+   margin-bottom: 20px;
 }
 .alignRight{
    text-align: right;
 }
 .resultLineTypeContainer
 {
-   display: inline;
+   display: inline-block;
    white-space: initial;
    vertical-align: middle;
+   max-width: 340px;
 }
 .resultLineEffectivity
 {
