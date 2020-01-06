@@ -259,7 +259,26 @@ class Pokemon extends Exportable
       });
       const self = this;
       this._names = args.names;
-      this._types = (args.types[0] instanceof Type ) ? args.types : args.types.map( e => { return TYPES.filter( f => { return f.name == e } )[0] });
+      if( ! this._names || this._names.length == 0 ) throw new Error('Pokemon(): Name required');
+      this._types = [];
+      args.types.forEach( t => {
+         if ( args.types[0] instanceof Type )
+         {
+            this._types.push( t );
+         }
+         else
+         {
+            const match = TYPES.filter( f => { return f.name == t } )[0];
+            if ( match )
+            {
+               this._types.push( match );
+            }
+            else
+            {
+               throw new Error("Pokemon(): invalid type \"" + t + "\"");
+            }
+         }
+      });
       this._info = args.info || "";
       this._stats = (args.stats instanceof PokemonStats) ? args.stats : new PokemonStats( args.stats );
       this._ev = (args.ev instanceof PokemonStats) ? args.ev : new PokemonStats( args.ev, 0 );
