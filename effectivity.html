@@ -3,17 +3,13 @@
 <meta charset="UTF-8">
 <head>
 <script type="text/javascript">
-function createElement(a,b){let c=document.createElement(a);if(b)for(var d in b)"pokemonType"==d||"innerHTML"==d?c[d]=b[d]:c.setAttribute(d,b[d]);return c}HTMLElement.prototype.removeFrom=function(a){let b=a.indexOf(this);return-1<b&&a.splice(b,1),this},HTMLElement.prototype.pushTo=function(a){return a.push(this),this},HTMLElement.prototype.pokemonType=void 0;const effectivityValueGood=2,effectivityValueNeutral=1,effectivityValueBad=.5,effectivityValueVeryBad=0;class Type{constructor(a,b){this.css=b,this.name=a,this.good=void 0,this.bad=void 0,this.veryBad=void 0}getEffectivityAgainstTarget(a){return this.good.includes(a)?effectivityValueGood:this.bad.includes(a)?effectivityValueBad:this.veryBad.includes(a)?effectivityValueVeryBad:effectivityValueNeutral}getEffectivityAgainstTargets(a){let b=effectivityValueNeutral;for(t in a)b*=this.getEffectivityAgainstTarget(a[t]);return Math.round(100*b)/100}setEffectivity(a,b,c){this.good=a,this.bad=b,this.veryBad=c}}class ComparisonLine{constructor(a,b){this.effectivity=b,this.types=[a]}addType(a){return this.types.push(a),this}}class Comparison{constructor(a,b){for(t in this.targets=b,this.lines=[],a)this.addSource(a[t])}addSource(a){const b=a.getEffectivityAgainstTargets(this.targets);let c=this.lines.filter(function(a){return a.effectivity==b})[0];c?c.addType(a):this.lines.push(new ComparisonLine(a,b))}getLines(){return this.lines.sort(function(c,a){return a.effectivity-c.effectivity})}}let Bug=new Type("Bug","bug"),Dark=new Type("Dark","dark"),Dragon=new Type("Dragon","dragon"),Electric=new Type("Electric","electric"),Fairy=new Type("Fairy","fairy"),Fighting=new Type("Fighting","fighting"),Fire=new Type("Fire","fire"),Flying=new Type("Flying","flying"),Ghost=new Type("Ghost","ghost"),Grass=new Type("Grass","grass"),Ground=new Type("Ground","ground"),Ice=new Type("Ice","ice"),Normal=new Type("Normal","normal"),Poison=new Type("Poison","poison"),Psychic=new Type("Psychic","psychic"),Rock=new Type("Rock","rock"),Steel=new Type("Steel","steel"),Water=new Type("Water","water");Bug.setEffectivity([Dark,Grass,Psychic],[Fairy,Fighting,Fire,Flying,Ghost,Poison,Steel],[]),Dark.setEffectivity([Ghost,Psychic],[Dark,Fairy,Fighting],[]),Dragon.setEffectivity([Dragon],[Steel],[Fairy]),Electric.setEffectivity([Flying,Water],[Dragon,Electric,Grass],[Ground]),Fairy.setEffectivity([Dark,Dragon,Fighting],[Fire,Poison,Steel],[]),Fighting.setEffectivity([Dark,Ice,Normal,Rock,Steel],[Bug,Fairy,Flying,Poison,Psychic],[Ghost]),Fire.setEffectivity([Bug,Grass,Ice,Steel],[Dragon,Fire,Rock,Water],[]),Flying.setEffectivity([Bug,Fighting,Grass],[Electric,Rock,Steel],[]),Ghost.setEffectivity([Ghost,Psychic],[Dark],[Normal]),Grass.setEffectivity([Ground,Rock,Water],[Bug,Dragon,Fire,Flying,Grass,Poison,Steel],[]),Ground.setEffectivity([Electric,Fire,Poison,Rock,Steel],[Bug,Grass],[Flying]),Ice.setEffectivity([Dragon,Flying,Grass,Ground],[Fire,Ice,Steel,Water],[]),Normal.setEffectivity([],[Rock,Steel],[Ghost]),Poison.setEffectivity([Fairy,Grass],[Ghost,Ground,Poison,Rock],[Steel]),Psychic.setEffectivity([Fighting,Poison],[Psychic,Steel],[Dark]),Rock.setEffectivity([Bug,Fire,Flying,Ice],[Fighting,Ground,Steel],[]),Steel.setEffectivity([Fairy,Ice,Rock],[Electric,Fire,Steel,Water],[]),Water.setEffectivity([Fire,Ground,Rock],[Dragon,Grass,Water],[]);const Types=[Bug,Dark,Dragon,Electric,Fairy,Fighting,Fire,Flying,Ghost,Grass,Ground,Ice,Normal,Poison,Psychic,Rock,Steel,Water];for(t in Types)Object.freeze(Types[t]);function createTypeIcon(a){return createElement("div",{class:"typeIcon "+a.css,pokemonType:a,innerHTML:a.name})}function createComparison(a,b){let c=new Comparison(Types,a);const d=c.getLines();let e=createElement("div",{id:"innerComparisonContainer"});if(d.length){let c=createElement("div",{class:"comparisonBox"}),f=createElement("div",{class:"comparisonSpacerBox",innerHTML:"&rarr;"}),g=createElement("div",{class:"comparisonBox"});for(l in d){const a=d[l];let e=createElement("div",{class:"comparisonLine"});if(!b||1<a.effectivity){for(r in a.types){const b=a.types[r];e.appendChild(createTypeIcon(b)),e.appendChild(createElement("div",{class:"comparisonLineSpacer"}))}e.appendChild(createElement("div",{class:"comparisonLineEfficiency",innerHTML:a.effectivity})),e.appendChild(createElement("div",{class:"comparisonLineSpacer"})),c.appendChild(e)}}for(s in a)g.appendChild(createTypeIcon(a[s]));e.appendChild(c),e.appendChild(f),e.appendChild(g)}return e}function updateButtons(a,b,c){const d=b.currentTarget?b.currentTarget:b.srcElement;if(a.includes(d))d.removeFrom(a).classList.remove("activeButton");else{if(!c)for(;0<a.length;)a.shift().classList.remove("activeButton");else 1<a.length&&a.shift().classList.remove("activeButton");d.pushTo(a).classList.add("activeButton")}}function init(){let a=[],b=createElement("div",{id:"controlBar"}),c=createElement("div",{id:"comparisonContainer"}),d=createElement("input",{type:"radio",name:"selectMode"}),f=createElement("input",{type:"radio",checked:"checked",name:"selectMode"}),g=createElement("input",{type:"checkbox",checked:"checked"});for(t in g.onclick=function(){c.innerHTML="",a.length&&c.appendChild(createComparison(a.map(function(a){return a.pokemonType}),g.checked))},Types){let d=createTypeIcon(Types[t]);d.classList.add("controlButton"),d.onclick=function(b){updateButtons(a,b,f.checked),c.innerHTML="",a.length&&c.appendChild(createComparison(a.map(function(a){return a.pokemonType}),g.checked))},b.appendChild(d)}b.appendChild(d),b.appendChild(createElement("text",{innerHTML:"single"})),b.appendChild(f),b.appendChild(createElement("text",{innerHTML:"dual"})),b.appendChild(g),b.appendChild(createElement("text",{innerHTML:"effective"})),document.body.appendChild(b),document.body.appendChild(c)}
+
+console.info=function(){},console.log=function(){},HTMLElement.prototype.entity={};const SELECTED_ELEMENT_CLASS="selectedElement",INVISIBLE_ELEMENT_CLASS="invisibleElement",EFFECTIVITY_GOOD=2,EFFECTIVITY_NEUTRAL=1,EFFECTIVITY_BAD=.5,EFFECTIVITY_VERY_BAD=0;class Type{constructor(a,b){this.className=b,this.name=a,this.good=void 0,this.bad=void 0,this.veryBad=void 0}equals(a){return!!(a instanceof Type)&&this==a}getEffectivityAgainstTarget(a){return a instanceof Type?this.good.includes(a)?EFFECTIVITY_GOOD:this.bad.includes(a)?EFFECTIVITY_BAD:this.veryBad.includes(a)?EFFECTIVITY_VERY_BAD:EFFECTIVITY_NEUTRAL:a instanceof DoubleType?this.getEffectivityAgainstTargets(a.types):(log.warn("Type.getEffectivityAgainstTarget: target is of no valid class"),0)}getEffectivityAgainstTargets(a){let b=EFFECTIVITY_NEUTRAL;for(t in a)b*=this.getEffectivityAgainstTarget(a[t]);return Math.round(100*b)/100}setEffectivity(a,b,c){this.good=a,this.bad=b,this.veryBad=c}}class DoubleType{constructor(a){this._types=a}get types(){return this._types}equals(a){if(a instanceof DoubleType){for(t in a.types)if(!this.types.includes(a.types[t]))return!1;return!0}return!1}getEffectivityAgainstTarget(c){return this.types.reduce((d,a)=>d.getEffectivityAgainstTarget(c)*a.getEffectivityAgainstTarget(c))}getEffectivityAgainstTargets(c){return this.types.reduce((d,a)=>d.getEffectivityAgainstTargets(c)*a.getEffectivityAgainstTargets(c))}static generateFromList(a){let b=[];a.forEach(a=>{b.push(a)});for(let c=0;c<a.length;c++){b.push(a[c]);for(let d=0;d<a.length;d++)if(d>c){const e=new DoubleType([a[c],a[d]]);b.push(e)}}return b}}let Bug=new Type("Bug","bug"),Dark=new Type("Dark","dark"),Dragon=new Type("Dragon","dragon"),Electric=new Type("Electric","electric"),Fairy=new Type("Fairy","fairy"),Fighting=new Type("Fighting","fighting"),Fire=new Type("Fire","fire"),Flying=new Type("Flying","flying"),Ghost=new Type("Ghost","ghost"),Grass=new Type("Grass","grass"),Ground=new Type("Ground","ground"),Ice=new Type("Ice","ice"),Normal=new Type("Normal","normal"),Poison=new Type("Poison","poison"),Psychic=new Type("Psychic","psychic"),Rock=new Type("Rock","rock"),Steel=new Type("Steel","steel"),Water=new Type("Water","water");Bug.setEffectivity([Dark,Grass,Psychic],[Fairy,Fighting,Fire,Flying,Ghost,Poison,Steel],[]),Dark.setEffectivity([Ghost,Psychic],[Dark,Fairy,Fighting],[]),Dragon.setEffectivity([Dragon],[Steel],[Fairy]),Electric.setEffectivity([Flying,Water],[Dragon,Electric,Grass],[Ground]),Fairy.setEffectivity([Dark,Dragon,Fighting],[Fire,Poison,Steel],[]),Fighting.setEffectivity([Dark,Ice,Normal,Rock,Steel],[Bug,Fairy,Flying,Poison,Psychic],[Ghost]),Fire.setEffectivity([Bug,Grass,Ice,Steel],[Dragon,Fire,Rock,Water],[]),Flying.setEffectivity([Bug,Fighting,Grass],[Electric,Rock,Steel],[]),Ghost.setEffectivity([Ghost,Psychic],[Dark],[Normal]),Grass.setEffectivity([Ground,Rock,Water],[Bug,Dragon,Fire,Flying,Grass,Poison,Steel],[]),Ground.setEffectivity([Electric,Fire,Poison,Rock,Steel],[Bug,Grass],[Flying]),Ice.setEffectivity([Dragon,Flying,Grass,Ground],[Fire,Ice,Steel,Water],[]),Normal.setEffectivity([],[Rock,Steel],[Ghost]),Poison.setEffectivity([Fairy,Grass],[Ghost,Ground,Poison,Rock],[Steel]),Psychic.setEffectivity([Fighting,Poison],[Psychic,Steel],[Dark]),Rock.setEffectivity([Bug,Fire,Flying,Ice],[Fighting,Ground,Steel],[]),Steel.setEffectivity([Fairy,Ice,Rock],[Electric,Fire,Steel,Water],[]),Water.setEffectivity([Fire,Ground,Rock],[Dragon,Grass,Water],[]);const TYPES=[Bug,Dark,Dragon,Electric,Fairy,Fighting,Fire,Flying,Ghost,Grass,Ground,Ice,Normal,Poison,Psychic,Rock,Steel,Water];for(t in TYPES)Object.freeze(TYPES[t]);const pokemonList=[];let POKEMON=[];class Pokemon{constructor(a,b,c=void 0,d=[]){this._names=a,this._types=b,this._info=c,this._evolvesInto=d.map(a=>Pokemon.getByName(a)||a)}getNamesMatchingPart(a){return this._names.filter(b=>b.toLowerCase().includes(a.toLowerCase()))}get name(){return this._names[0]}get info(){return this._info}get names(){return this._names}get types(){return this._types}get evolvesInto(){return this._evolvesInto}addName(a){this._names.push(a)}static getByName(a){for(const b in POKEMON)if(POKEMON[b].names.includes(a))return POKEMON[b]}static findMatchingNames(a){let b=[];return POKEMON.forEach(c=>{b=b.concat(c.getNamesMatchingPart(a))}),b.sort((c,a)=>c.localeCompare(a))}static addPokemonToList(a){0==a.names.filter(a=>Pokemon.getByName(a)).length&&POKEMON.push(a)}static exportList(){let a="";return POKEMON.sort((c,a)=>c.names[0].localeCompare(a.names[0])).forEach((b,c)=>{a+=0<c?",\n":"",a+="[[",b.names.forEach((b,c)=>{a+=0<c?",":"",a+="\""+b+"\""}),a+="],",a+="[",b.types.forEach((b,c)=>{a+=0<c?",":"",a+=""+b.name+""}),a+="],",a+=b.info?",["+b.info+"]":",",a+="[",b.evolvesInto.forEach((b,c)=>{a+=0<c?",\"":"\"",a+=""+(b instanceof Pokemon?b.name:b)+"\""}),a+="]]"}),console.error(a),a}static parseCreateFromList(a){return a.map(a=>new Pokemon(a[0],a[1],a[2]||void 0,a[3]||[]))}}POKEMON=Pokemon.parseCreateFromList(pokemonList);class HTMLEntity{constructor(a={}){this._parent=void 0,this._children=[],this._element=document.createElement(a.type||"div")}get parent(){return this._parent}set parent(a){this._parent=a}get element(){return this._element}get children(){return this._children}hasClass(a){return!!this.element.classList.contains(a)}addClass(a){return this.hasClass(a)||this.element.classList.add(a),this}removeClass(a){return this.hasClass(a)&&this.element.classList.remove(a),this}toggleClass(a){return this.hasClass(a)?this.removeClass(a):this.addClass(a),this}addChild(a,b=-1){return a instanceof HTMLEntity?(this.children.push(a),a.parent=this,this.element.appendChild(a.element)):(console.error("HTMLEntity.addChild ERROR child not of class HTMLEntity"),console.log("parent ",this),console.log("child ",a),console.log()),this}addChildren(a){return a.forEach(a=>{this.addChild(a)}),this}empty(a=void 0){return this.children.forEach(a=>{a.removeFrom(this.children),a.empty()}),this.element.innerHTML="",this}addOnClickFunc(a){const b=this;return this.element.addEventListener("click",function(){a(b)}),this}removeFrom(a){let b=a.indexOf(this);return-1<b&&a.splice(b,1),this}pushTo(a){return a.push(this),this}}class TypeIcon extends HTMLEntity{constructor(a){super().addClass("typeIcon").addClass(a.className),super.element.innerHTML=a.name,this._type=a}get type(){return this._type}}class DoubleTypeIcon extends HTMLEntity{constructor(a){super().addClass("doubleType"),this.addChildren([new TypeIcon(a.types[0]),new TypeIcon(a.types[1])]),this._type=a}get type(){return this._type}}class Button extends TypeIcon{constructor(a){super(a).addClass("button");const b=this;b._isSelected=!1}get selected(){return this._isSelected}set selected(a){"boolean"==typeof a?a==this._isSelected?console.warn("Button.selected: already in state: ",a):(this._isSelected=a,this.toggleClass(SELECTED_ELEMENT_CLASS)):(console.error("Button.selected: trying to set selected to non-bool value "),console.log("value",a))}}class ResultLineSpacer extends HTMLEntity{constructor(a){super().addClass("resultLineSpacer"),this.element.innerHTML=a}}class ResultLineEffectivity extends HTMLEntity{constructor(a){super().addClass("resultLineEffectivity"),super.element.innerHTML=a,this.effectivity=a}}class ResultLineTypeContainer extends HTMLEntity{constructor(){super().addClass("resultLineTypeContainer"),this._types=[]}get types(){return this._types}addType(a){console.log("ResultLineTypeContainer.addType"),console.log("type",a);const b=this._types.filter(b=>a.equals(b));console.log("existing",b),b&&0==b.length&&(this._types.push(a),this.addChild(a instanceof DoubleType?new DoubleTypeIcon(a):new TypeIcon(a)))}}class ResultLine extends HTMLEntity{constructor(a,b=0){super().addClass("resultLine"),!b==ResultLine.EFFECTIVITY_RIGHT_COL&&this.addClass("alignRight"),console.log("ResultLine creating",[a,b]),this._typeContainer=new ResultLineTypeContainer,this.effectivity=a,a==null?this.addChild(this._typeContainer):!b==ResultLine.EFFECTIVITY_RIGHT_COL?(this.addChild(this._typeContainer),this.addChild(new ResultLineEffectivity(this.effectivity))):(this.addChild(new ResultLineEffectivity(this.effectivity)),this.addChild(this._typeContainer))}get types(){return this._typeContainer.types}addType(a){return this._typeContainer.addType(a),this}static get EFFECTIVITY_RIGHT_COL(){return 1}}class ResultColumn extends HTMLEntity{constructor(a,b,c,d){super().addClass("resultColumn"),console.info("ResultColumn creating",[a,b,c,d]),this._resultLines=[],this.mode=void 0,this.type=a,this._onlyEffective=d,0<b.length?b.forEach(a=>{this.addToResults(new ResultLine(a.getEffectivityAgainstTarget(this.type)).addType(a))}):0<c.length?c.forEach(a=>{this.addToResults(new ResultLine(this.type.getEffectivityAgainstTarget(a),ResultLine.EFFECTIVITY_RIGHT_COL).addType(a))}):this.resultLines.push(new ResultLine(void 0).addType(a)),this.addChildren(this.resultLines.sort((c,a)=>a.effectivity-c.effectivity)),console.log()}get resultLines(){return this._resultLines}addToResults(a){if(a.types[0]instanceof DoubleType&&2<a.effectivity||a.types[0]instanceof Type&&1<a.effectivity||!this._onlyEffective){let b=this.resultLines.filter(function(b){return b.effectivity==a.effectivity})[0];b?b.addType(a.types[0]):this.resultLines.push(a)}}}class ResultBox extends HTMLEntity{constructor(a=void 0,b=void 0,c=void 0){super().addClass("resultBox"),console.info("ResultBox creating",[a,b,c]),b&&(this.addChild(b),this.addChild(new ResultLineSpacer("&rarr;"))),a&&this.addChild(a),c&&(this.addChild(new ResultLineSpacer("&rarr;")),this.addChild(c)),console.log()}}class ResultContainer extends HTMLEntity{constructor(){super().addClass("resultContainer")}}class ControlInput extends HTMLEntity{constructor(a,b,c=void 0,d=!1){super({type:"input"}).addClass("controlInput"),this.element.type=a,this.element.name=b,this.element.checked=d?"checked":void 0,this.addOnClickFunc(c)}get isChecked(){return!!this.element.checked}}class SimpleText extends HTMLEntity{constructor(a="",b="text"){super({type:b}),this.element.innerHTML=a}}class SimpleTextInput extends HTMLEntity{constructor(a=void 0){super({type:"input"}).addClass("inputField"),a&&this.element.addEventListener("input",a)}get value(){return this.element.value}set value(a){this.element.value=a}}class ControlSearchOutputItem extends HTMLEntity{constructor(a,b){super().addClass("searchOutputItem"),this.onClick=a}}class ControlSearchOutput extends HTMLEntity{constructor(a,b){super().addClass("searchOutput"),this.onClick=a}setNames(a){const b=this,c=function(a){b.onClick(a)};a.forEach(a=>{this.addChildren([new SimpleText(a,"div").addOnClickFunc(c).addClass("button"),new SimpleText(" ")])})}}class ControlBar extends HTMLEntity{constructor(a=void 0){super().addClass("controlBar"),this.selectedButtons=[],this.selectedPokemon=void 0,this.onUpdate=a;const c=this;this._buttons=[];const d=function(a){c.selectedPokemon&&(c.unselectAllButtons(),c.selectedPokemon=void 0),c.selectedButtons.includes(a)?c.unselectButton(a):2>c.selectedButtons.length?c.selectButton(a):(c.unselectButton(c.selectedButtons[0]),c.selectButton(a)),c.onUpdate(c)},e=function(){const a=c.selectedButtons;if(0<a.length){const b=c._searchInput.value;if(b&&""!=b){const d=a.map(a=>a.type);if(confirm("Really add \""+b+"\" with type"+(2==d.length?"s "+d[0].name+", "+d[1].name:" "+d[0].name)+" to list?")){const a=prompt("Info:",""),e=parseInt(prompt("Evolves into? count:",""));let f=[];if(0<e)for(let a=0;a<e;a++)f.push(prompt("Evolves into("+(a+1)+"):",""));c.selectedPokemon=new Pokemon([b],d,a,f),Pokemon.addPokemonToList(c.selectedPokemon),c._searchInput.value="",c.onUpdate(c)}}}},f=function(){const a=Pokemon.exportList();console.error(a),prompt("const pokemonList = [",a)},g=function(a){c.unselectAllButtons(),c.selectedPokemon=Pokemon.getByName(a),c._buttons.filter(a=>c.selectedPokemon.types.includes(a.type)).forEach(a=>{c.selectButton(a)})};TYPES.forEach(a=>{const b=new Button(a).addOnClickFunc(function(a){d(a)});this._buttons.push(b),this.addChild(b)}),this._createDoubleTypes=new ControlInput("checkbox","createDoubleTypes",function(){c.onUpdate(c)},!1),this._setEffectiveOnlySource=new ControlInput("checkbox","effectiveSource",function(){c.onUpdate(c)},!1),this._setEffectiveOnlyTarget=new ControlInput("checkbox","effectiveTarget",function(){c.onUpdate(c)},!1),this._searchInput=new SimpleTextInput(function(){const a=Pokemon.findMatchingNames(c._searchInput.value);c._searchOutput.empty(),1==a.length&&g(a[0]),c._searchOutput.setNames(a),c.onUpdate(c)},!1),this._addToPokemonList=new ControlInput("button","addToList",function(){e(c)}),this._addToPokemonList.element.value="+",this._exportPokemonList=new ControlInput("button","exportList",function(){f(c)}),this._exportPokemonList.element.value="e",this._searchOutput=new ControlSearchOutput(function(a){const b=a.element.innerHTML;g(b),c.onUpdate(c)}),this.addChildren([new SimpleText("<br>effective: "),this._setEffectiveOnlySource,new SimpleText("source"),this._setEffectiveOnlyTarget,new SimpleText("target"),this._createDoubleTypes,new SimpleText("doubleTypes<br>"),this._searchInput,this._addToPokemonList,this._exportPokemonList,this._searchOutput])}get createDoubleTypes(){return this._createDoubleTypes.isChecked}get sourceOnlyEffective(){return this._setEffectiveOnlySource.isChecked}get targetOnlyEffective(){return this._setEffectiveOnlyTarget.isChecked}get selectedType(){const a=this.selectedButtons.map(function(a){return a.type});if(1<a.length)return new DoubleType(a);return 0<a.length?a[0]:void 0}unselectAllButtons(){for(;0<this.selectedButtons.length;)this.unselectButton(this.selectedButtons[0])}unselectButton(a){a.removeFrom(this.selectedButtons),a.selected=!1}selectButton(a){2<=this.selectedButtons.length&&this.unselectButton(this.selectedButtons[0]),a.pushTo(this.selectedButtons),a.selected=!0}}class PokemonInfoBox extends HTMLEntity{constructor(a){super().addClass("pokemonInfoBox");const b=a.names,c=a.types;this.addChild(new SimpleText(b[0]+" ")),a.info&&(this.addChild(new SimpleText(" - ")),this.addChild(new SimpleText(a.info))),0<a.evolvesInto.length&&(this.addChild(new SimpleText(" - evolves into: ")),a.evolvesInto.forEach(a=>{this.addChild(new SimpleText(a instanceof Pokemon?a.name:a))}))}}function init(){let a=document.body,b=new ControlBar,c=new ResultContainer;b.onUpdate=function(a){c.empty();const d=a.selectedType,e=a.selectedPokemon;if(console.info("init onUpdate",[d,e]),e&&c.addChild(new PokemonInfoBox(e)),d){c.addChild(new ResultBox(new ResultColumn(d,[],[]),new ResultColumn(d,TYPES,[],b.sourceOnlyEffective)));const a=b.createDoubleTypes?DoubleType.generateFromList(TYPES):TYPES;d instanceof DoubleType?(c.addChild(new ResultBox(new ResultColumn(d.types[0],[],[]),void 0,new ResultColumn(d.types[0],[],a,b.targetOnlyEffective))),c.addChild(new ResultBox(new ResultColumn(d.types[1],[],[]),void 0,new ResultColumn(d.types[1],[],a,b.targetOnlyEffective)))):c.addChild(new ResultBox(new ResultColumn(d,[],[]),void 0,new ResultColumn(d,[],a,b.targetOnlyEffective)))}},a.appendChild(b.element),a.appendChild(c.element)}
+
 </script>
 <style>
 body {
-   background-color: #eee;
-}
-#comparisonContainer {
-   width: 100%;
-   text-align: center;
-   margin-top: 20px;
-   background-color: #fff;
+   background-color: #dadae1;
 }
 #innerComparisonContainer {
    margin: 0; padding: 0;
@@ -21,7 +17,7 @@ body {
 .typeIcon {
    display: inline-block;
    color: white;
-   font-size: 25px;
+   font-size: 20px;
    margin: 4px;
    padding: 8px;
    text-shadow:
@@ -30,37 +26,82 @@ body {
    2px -2px 2px black,
 	-2px -2px 2px black;
 }
-.controlButton {
-   cursor: pointer;
+.doubleType {
+   display: inline-block;
+   margin: 4px;
 }
-.activeButton {
-   border: 5px dashed white;
+.doubleType * {
+   margin: 0;
 }
-.comparisonLine{
+.controlBar {
    display: block;
-   text-align: right;
+   padding: 12px;
+   background-color: white;
 }
-.comparisonLineSpacer{
+.searchOutput >* {
+   margin-top: 12px;
+}
+.button {
+   cursor: pointer;
    display: inline-block;
-   padding: 4px;
 }
-.comparisonLineIcon{
+.selectedElement {
+   border: 4px dashed white;
+}
+.pokemonName{
+   background-color: white;
+   font-size: 20px;
+}
+.pokemonInfoBox{
+   background-color: white;
+   padding: 12px;
+   margin-top: 12px;
+}
+.resultContainer {
+   width: 100%;
+}
+.resultBox{
    display: inline-block;
-   padding: 4px;
+   white-space: nowrap;
+   margin-top: 12px;
+   margin-right: 12px;
+   background-color: white;
 }
-.comparisonLineEfficiency{
-   display: inline-block;
-   padding: 4px;
-   width: 2em;
-   font-weight: bold;
-}
-.comparisonBox{
+.resultColumn{
    display: inline-block;
    vertical-align: middle;
+   white-space: nowrap;
 }
-.comparisonSpacerBox{
+.resultLine{
+   display: block;
+   margin-top: 20px;
+   margin-bottom: 20px;
+}
+.alignRight{
+   text-align: right;
+}
+.resultLineTypeContainer
+{
    display: inline-block;
-   padding: 10px;
+   white-space: initial;
+   vertical-align: middle;
+   max-width: 340px;
+}
+.resultLineEffectivity
+{
+   display: inline-block;
+   width: 2em;
+   font-weight: bold;
+   text-align: center;
+   vertical-align: middle;
+}
+.resultLineSpacer{
+   display: inline-block;
+   padding-left: 8px;
+   padding-right: 8px;
+}
+.resultLineIcon{
+   display: inline-block;
 }
 .bug {      background-color: #a8b820; }
 .dark {     background-color: #705848; }
