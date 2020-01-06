@@ -3,11 +3,25 @@
 <meta charset="UTF-8">
 <head>
 <script type="text/javascript">
+pokemonList =
+// ---------- insert export data:
+[]
+// ----------
+;
 
 console.info = function() {}
 console.log = function() {}
 
 HTMLElement.prototype.entity = {};
+// ------------------------------------------------------------------------------------------------------------------------------------
+
+//  ____       _                                    _       _
+// |  _ \ ___ | | _____ _ __ ___   __ _ _ __     __| | __ _| |_ __ _
+// | |_) / _ \| |/ / _ \ '_ ` _ \ / _` | '_ \   / _` |/ _` | __/ _` |
+// |  __/ (_) |   <  __/ | | | | | (_| | | | | | (_| | (_| | || (_| |
+// |_|   \___/|_|\_\___|_| |_| |_|\__,_|_| |_|  \__,_|\__,_|\__\__,_|
+
+// ------------------------------------------------------------------------------------------------------------------------------------
 
 const SELECTED_ELEMENT_CLASS = "selectedElement";
 const INVISIBLE_ELEMENT_CLASS = "invisibleElement";
@@ -168,28 +182,117 @@ const TYPES = [ Bug,Dark,Dragon,Electric,Fairy,Fighting,Fire,Flying,Ghost,Grass,
 
 for ( t in TYPES ) Object.freeze( TYPES[t] );
 
-
-// ---- exported values: --------------------------------------------------------------------------------------------------------------
-const pokemonList = [
-
-
-
-];
 // ------------------------------------------------------------------------------------------------------------------------------------
 
-let POKEMON = [];
-class Pokemon
+class Exportable
 {
-   constructor( names, types, info = undefined, evolvesInto = [] )
+   constructor( func )
    {
-      this._names = names;
-      this._types = types;
-      this._info = info;
-      this._evolvesInto = evolvesInto.map((n) => {
-         return Pokemon.getByName( n )
-             || n;
-      });
+      this._exportFunc = func;
    }
+   exportObject( showEmpty = false )
+   {
+      return this._exportFunc( this, showEmpty );
+   }
+   export( showEmpty = false )
+   {
+      return JSON.stringify( this.exportObject( showEmpty ) );
+   }
+}
+
+class PokemonStats extends Exportable
+{
+   constructor( args = {}, defaultValue = -1 )
+   {
+      super( function( self, showEmpty ) {
+         if ( self.changed || showEmpty )
+         {
+            let output = {};
+            for ( const key in self.statlist )
+            {
+               if ( self.statlist[key] != self.defaultValue || showEmpty )
+               {
+                  output[key] = self.statlist[key];
+               }
+            }
+            return output;
+         }
+         return undefined;
+      } );
+
+      this.defaultValue = defaultValue;
+      this.atk = args.atk || this.defaultValue;
+      this.def = args.def || this.defaultValue;
+      this.spAtk = args.spAtk || this.defaultValue;
+      this.spDef = args.spDef || this.defaultValue;
+      this.speed = args.speed || this.defaultValue;
+      this.hp = args.hp || this.defaultValue;
+   }
+   get statlist() { return { atk:this.atk, def:this.def, spAtk:this.spAtk, spDef:this.spDef, speed:this.speed, hp:this.hp };}
+   get sum() { let sum = 0;
+               this.statlist.forEach( e => { sum += e });
+               return sum; }
+   get changed() {
+      for ( const key in this.statlist )
+      {
+         if ( this.statlist[key] != this.defaultValue )
+         {
+            return true;
+         }
+      }
+      return false;
+   }
+}
+
+class Pokemon extends Exportable
+{
+   constructor( args = {} )
+   {
+      super( function( self, showEmpty ) {
+         let output = { names:self.names, types:self.types.map( e => { return e.name }) };
+         if ( self.info != "" || showEmpty )                    output.info = self.info;
+         if ( self.stats.exportObject(showEmpty) || showEmpty ) output.stats = self.stats.exportObject(showEmpty);
+         if ( self.ev.exportObject(showEmpty) || showEmpty )    output.ev = self.ev.exportObject(showEmpty);
+         if ( self.evolvesTo.length != 0 || showEmpty )         output.evolvesTo = self.evolvesTo.map( e => { e.name });
+         if ( self.evolvesFrom.length != 0 || showEmpty )       output.evolvesFrom = self.evolvesFrom.map( e => { e.name });
+         return output;
+      });
+      const self = this;
+      this._names = args.names;
+      this._types = (args.types[0] instanceof Type ) ? args.types : args.types.map( e => { return TYPES.filter( f => { return f.name == e } )[0] });
+      this._info = args.info || "";
+      this._stats = (args.stats instanceof PokemonStats) ? args.stats : new PokemonStats( args.stats );
+      this._ev = (args.ev instanceof PokemonStats) ? args.ev : new PokemonStats( args.ev, 0 );
+      this._evolvesTo = [];
+      this._evolvesFrom = [];
+
+      if ( args.evolvesTo )
+      {
+         args.evolvesTo.forEach( p =>{ this.addOrFindPokemonReference( p, this.evolvesTo ); } );
+      }
+
+      if ( args.evolvesFrom )
+      {
+         args.evolvesFrom.forEach( p =>{ this.addOrFindPokemonReference( p, this.evolvesFrom ); } );
+      }
+   }
+
+   addOrFindPokemonReference( pokemon, list )
+   {
+      if ( pokemon instanceof Pokemon )
+      {
+         list.push( pokemon );
+      }
+      else
+      {
+         const found = Pokemon.getByName( pokemon );
+         if ( found )
+         {
+            list.push( found );
+         }
+      }
+   }
+
    getNamesMatchingPart( part )
    {
       return this._names.filter( (n) => { return n.toLowerCase().includes( part.toLowerCase() ); } )
@@ -198,16 +301,20 @@ class Pokemon
    get info() { return this._info; }
    get names() { return this._names; }
    get types() { return this._types; }
-   get evolvesInto() { return this._evolvesInto; }
+   get stats() { return this._stats; }
+   get ev() { return this._ev; }
+   get evolvesTo() { return this._evolvesTo; }
+   get evolvesFrom() { return this._evolvesFrom; }
+
    addName( name ) { this._names.push(name) }
 
    static getByName( name )
    {
-      for( const p in POKEMON )
+      for( const p in Pokemon.list )
       {
-         if ( POKEMON[p].names.includes( name ) )
+         if ( Pokemon.list[p].names.includes( name ) )
          {
-            return POKEMON[p];
+            return Pokemon.list[p];
          }
       }
       return undefined;
@@ -215,44 +322,69 @@ class Pokemon
    static findMatchingNames( part )
    {
       let result = [];
-      POKEMON.forEach( p => {
+      Pokemon.list.forEach( p => {
          result = result.concat( p.getNamesMatchingPart( part ) );
       });
       return result.sort( (a,b) => { return a.localeCompare(b) } );
    }
-   static addPokemonToList( pokemon )
+   static getSortedList()
    {
-      if ( pokemon.names.filter( n => { return Pokemon.getByName( n ) } ).length == 0 )
-      {
-         POKEMON.push( pokemon );
-      }
+      return Pokemon.list.sort( (a,b) => { return a.names[0].localeCompare(b.names[0]) } )
    }
    static exportList()
    {
-      let result = "";
-      POKEMON.sort( (a,b) => { return a.names[0].localeCompare(b.names[0]) } )
-             .forEach( (p,i) => { result += (i > 0) ? ",\n" : "";
-                                  result += "[[";
-                                  p.names.forEach( (n,ni) => { result += (ni > 0) ? "," : ""; result += "\""+n+"\""; });
-                                  result += "],";
-                                  result += "[";
-                                  p.types.forEach( (t,ti) => { result += (ti > 0) ? "," : ""; result += ""+t.name+""; });
-                                  result += "],";
-                                  result += (p.info) ? ",["+p.info+"]" : ",";
-                                  result += "[";
-                                  p.evolvesInto.forEach( (t,te) => { result += (te > 0) ? ",\"" : "\""; result += ""+((t instanceof Pokemon) ? t.name : t)+"\""; });
-                                  result += "]]";
-                                });
-      console.error(result);
-
-      return result;
+      let results = [];
+      Pokemon.getSortedList().forEach( (p,i) => { results.push( p.exportObject() ) });
+      return results;
    }
-   static parseCreateFromList( list )
+
+   static addReplacePokemon( pokemon )
    {
-      return list.map( (item) => { return new Pokemon( item[0], item[1], item[2] || undefined, item[3] || [] ); } );
+      let match = undefined;
+      pokemon.names.forEach( n => {
+         match = (match) ? match : Pokemon.getByName( n );
+      });
+      if ( !match )
+      {
+         Pokemon.list.push( pokemon );
+      }
+      else
+      {
+         Pokemon.list.splice( Pokemon.list.indexOf( match ), 1, pokemon );
+      }
+      return pokemon;
+   }
+   static removePokemon( pokemon )
+   {
+      const idx = Pokemon.list.indexOf( pokemon );
+      if ( idx > -1 )
+      {
+         Pokemon.list.splice( idx, 1 );
+      }
+   }
+
+   static createJSON()
+   {
+      return JSON.stringify( Pokemon.exportList() ).replace(/},{/g, "},\n{");
+   }
+   static parseAddPokemonFromString( str )
+   {
+      return Pokemon.addReplacePokemon( new Pokemon( JSON.parse( str ) ) );
+   }
+   static parseAddPokemonFromJSON( json )
+   {
+      JSON.parse(json).forEach( (item) => { Pokemon.addReplacePokemon( new Pokemon( item ) ); } );
+      return true;
+   }
+   static parseAddPokemonFromList( list )
+   {
+      list.forEach( (item) => { Pokemon.addReplacePokemon( new Pokemon( item ) ); } );
    }
 }
-POKEMON = Pokemon.parseCreateFromList( pokemonList );
+Pokemon.list = []; // initialize static member
+
+Pokemon.parseAddPokemonFromList( pokemonList );
+
 
 // ------------------------------------------------------------------------------------------------------------------------------------
 class HTMLEntity
@@ -357,7 +489,6 @@ class HTMLEntity
       return this;
    }
 }
-
 // ------------------------------------------------------------------------------------------------------------------------------------
 
 //   _   _ _____ __  __ _     _____       _   _ _   _
@@ -604,6 +735,72 @@ class ResultContainer extends HTMLEntity
 }
 
 
+class PokemonName extends HTMLEntity
+{
+   constructor( name )
+   {
+      super().addClass("pokemonName");
+      this.element.innerHTML = name;
+   }
+}
+
+class PokemonInfoBox extends HTMLEntity
+{
+   constructor( pokemon )
+   {
+      super().addClass("pokemonInfoBox");
+      const names = pokemon.names;
+      const types = pokemon.types;
+
+      this.addChild( new PokemonName( pokemon.name ) );
+      if( names.length > 1 )
+      {
+         this.addChild( new SimpleText( "( " ) );
+         names.forEach( (n,i) => {
+            if ( i > 0 )
+            {
+               this.addChild( new SimpleText( n + " " ) );
+            }
+         });
+         this.addChild( new SimpleText( ") " ) );
+      }
+
+      types.forEach( t => {
+         this.addChild( new TypeIcon( t ) );
+      });
+
+      if ( pokemon.info )
+      {
+         this.addChild( new SimpleText( " - " ) );
+         this.addChild( new SimpleText( pokemon.info ) );
+      }
+      if ( pokemon.evolvesTo.length > 0 )
+      {
+         this.addChild( new SimpleText( " - evolves into: " ) );
+         pokemon.evolvesTo.forEach( pokemon => {
+            this.addChild( new SimpleText( ( pokemon instanceof Pokemon ) ? pokemon.name : pokemon ) );
+         });
+      }
+      if ( pokemon.evolvesFrom.length > 0 )
+      {
+         this.addChild( new SimpleText( " - evolves from: " ) );
+         pokemon.evolvesFrom.forEach( pokemon => {
+            this.addChild( new SimpleText( ( pokemon instanceof Pokemon ) ? pokemon.name : pokemon ) );
+         });
+      }
+      if ( pokemon.stats.changed )
+      {
+         const stats = pokemon.stats;
+         this.addChild( new SimpleText( " - STATS: atk: " + stats.atk + ", def: " + stats.def + ", spAtk: " + stats.spAtk + ", spDef: " + stats.spDef + ", speed: " + stats.speed + ", hp: " + stats.hp ) );
+      }
+      if ( pokemon.ev.changed )
+      {
+         const ev = pokemon.ev;
+         this.addChild( new SimpleText( " - EV: atk: " + ev.atk + ", def: " + ev.def + ", spAtk: " + ev.spAtk + ", spDef: " + ev.spDef + ", speed: " + ev.speed + ", hp: " + ev.hp ) );
+      }
+   }
+}
+
 class ControlInput extends HTMLEntity
 {
    constructor( type, name, parentOnClick = undefined, checked = false )
@@ -659,7 +856,7 @@ class ControlSearchOutput extends HTMLEntity
 
 
    }
-   setNames( names )
+   addNames( names )
    {
       const self = this;
       const funct = function(e)
@@ -711,10 +908,12 @@ class ControlBar extends HTMLEntity
          }
          self.onUpdate( self );
       }
-
       const onTextInput = function()
       {
-
+         if ( self._searchInput.value > 0 && ["{","["].includes( self._searchInput.value[0] ) )
+         {
+            return false;
+         }
          const foundNames = Pokemon.findMatchingNames( self._searchInput.value );
 
          self._searchOutput.empty();
@@ -725,7 +924,7 @@ class ControlBar extends HTMLEntity
             selectPokemonByName( foundNames[0] );
          }
 
-         self._searchOutput.setNames( foundNames );
+         self._searchOutput.addNames( foundNames );
 
          self.onUpdate( self );
       }
@@ -734,7 +933,7 @@ class ControlBar extends HTMLEntity
       {
          const name = e.element.innerHTML;
          selectPokemonByName( name );
-
+         self._searchOutput.empty();
          self.onUpdate( self );
       }
       const onAddToListClick = function()
@@ -746,36 +945,71 @@ class ControlBar extends HTMLEntity
             if ( inputValue && inputValue != "" )
             {
                const selectedTypes = selectedButtons.map( (b) => { return b.type });
-               if ( confirm( "Really add \""+inputValue+
+               let newPokemon = new Pokemon( { names:[inputValue], types:selectedTypes } );
+               const exportedValue = newPokemon.export( true );
+
+               const answer = prompt( "Really add \""+inputValue+
                              "\" with type"+( (selectedTypes.length == 2) ? "s "+selectedTypes[0].name+", "+selectedTypes[1].name
                                                                           : " " + selectedTypes[0].name ) +
-                             " to list?" ) )
-               {
-                  const info = prompt("Info:", "");
-                  const evolveCount = parseInt(prompt("Evolves into? count:", ""));
-                  let evolves = [];
+                             " to list?",
+                             exportedValue );
 
-                  if ( evolveCount > 0 )
+               if ( answer != null )
+               {
+                  if ( exportedValue != answer )
                   {
-                     for ( let c = 0; c < evolveCount; c++)
-                     {
-                        evolves.push( prompt("Evolves into("+(c+1)+"):", "") );
-                     }
+                     self.selectedPokemon = Pokemon.parseAddPokemonFromString( answer );
+                  }
+                  else
+                  {
+                     self.selectedPokemon = Pokemon.addReplacePokemon( newPokemon );
+                     self._searchOutput.addNames( [ newPokemon.name ] );
                   }
 
-                  self.selectedPokemon = new Pokemon( [inputValue], selectedTypes, info, evolves );
-                  Pokemon.addPokemonToList( self.selectedPokemon );
+                  self._searchOutput.empty();
+                  self._searchOutput.addNames( Pokemon.findMatchingNames( self._searchInput.value ) );
                   self._searchInput.value = "";
+
                   self.onUpdate( self );
                }
             }
          }
       }
+      const onTextInputClick = function()
+      {
+         onTextInput();
+      }
+      const onRemoveClick = function()
+      {
+         const pokemon = Pokemon.getByName( self._searchInput.value );
+         if ( pokemon )
+         {
+            if( confirm("Remove " + pokemon.name + "?") )
+            {
+               Pokemon.removePokemon( pokemon );
+               self._searchOutput.empty();
+               self._searchOutput.addNames( Pokemon.findMatchingNames( self._searchInput.value ) );
+            }
+         }
+      }
       const exportListClick = function()
       {
-         const exported = Pokemon.exportList();
+         const exported = Pokemon.createJSON();
          console.error( exported );
-         prompt("const pokemonList = [", exported );
+         prompt("const pokemonList = ", exported );
+      }
+      const importListClick = function()
+      {
+         if ( ! Pokemon.parseAddPokemonFromJSON( self._searchInput.value ) )
+         {
+            console.error("Error during parsing");
+         }
+         else
+         {
+            self._searchOutput.empty();
+            self._searchInput.value = "";
+            self.onUpdate( self );
+         }
       }
 
       const selectPokemonByName = function( name )
@@ -797,20 +1031,30 @@ class ControlBar extends HTMLEntity
       this._setEffectiveOnlySource = new ControlInput( "checkbox", "effectiveSource", function() { self.onUpdate(self); }, false );
       this._setEffectiveOnlyTarget = new ControlInput( "checkbox", "effectiveTarget", function() { self.onUpdate(self); }, false );
       this._searchInput = new SimpleTextInput( onTextInput, false );
+      this._searchInput.addOnClickFunc( onTextInputClick );
       this._addToPokemonList = new ControlInput( "button", "addToList", function() { onAddToListClick(self); } );
       this._addToPokemonList.element.value = "+";
+      this._removeFromPokemonList = new ControlInput( "button", "removeFromList", function() { onRemoveClick(self); } );
+      this._removeFromPokemonList.element.value = "-";
       this._exportPokemonList = new ControlInput( "button", "exportList", function() { exportListClick(self); } );
       this._exportPokemonList.element.value = "e";
+      this._importPokemonList = new ControlInput( "button", "importList", function() { importListClick(self); } );
+      this._importPokemonList.element.value = "i";
       this._searchOutput = new ControlSearchOutput( onSearchOutputClick );
 
       this.addChildren([
          new SimpleText("<br>effective: "),
-         this._setEffectiveOnlySource, new SimpleText("source"),
-         this._setEffectiveOnlyTarget, new SimpleText("target"),
-         this._createDoubleTypes, new SimpleText("doubleTypes<br>"),
+         this._setEffectiveOnlySource,
+         new SimpleText("source"),
+         this._setEffectiveOnlyTarget,
+         new SimpleText("target"),
+         this._createDoubleTypes,
+         new SimpleText("doubleTypes<br>"),
          this._searchInput,
          this._addToPokemonList,
+         this._removeFromPokemonList,
          this._exportPokemonList,
+         this._importPokemonList,
          this._searchOutput ] );
    }
 
@@ -859,44 +1103,6 @@ class ControlBar extends HTMLEntity
       }
       button.pushTo( this.selectedButtons );
       button.selected = true;
-   }
-}
-
-class PokemonInfoBox extends HTMLEntity
-{
-   constructor( pokemon )
-   {
-      super().addClass("pokemonInfoBox");
-      const names = pokemon.names;
-      const types = pokemon.types;
-
-      this.addChild( new SimpleText( names[0] + " " ) );
-      /*if( names.length > 1 )
-      {
-         this.addChild( new SimpleText( "( " ) );
-         names.forEach( (n,i) => {
-            if ( i > 0 )
-            {
-               this.addChild( new SimpleText( n + " " ) );
-            }
-         });
-         this.addChild( new SimpleText( ") " ) );
-      }
-      types.forEach( t => {
-         this.addChild( new TypeIcon( t ) );
-      });*/
-      if ( pokemon.info )
-      {
-         this.addChild( new SimpleText( " - " ) );
-         this.addChild( new SimpleText( pokemon.info ) );
-      }
-      if ( pokemon.evolvesInto.length > 0 )
-      {
-         this.addChild( new SimpleText( " - evolves into: " ) );
-         pokemon.evolvesInto.forEach( pokemon => {
-            this.addChild( new SimpleText( ( pokemon instanceof Pokemon ) ? pokemon.name : pokemon ) );
-         });
-      }
    }
 }
 
@@ -983,8 +1189,12 @@ body {
    padding: 12px;
    background-color: white;
 }
+.searchOutput {
+   overflow-x: hidden;
+}
 .searchOutput >* {
    margin-top: 12px;
+   font-size: 32px;
 }
 .button {
    cursor: pointer;
@@ -994,8 +1204,11 @@ body {
    border: 4px dashed white;
 }
 .pokemonName{
+   display: inline-block;
    background-color: white;
-   font-size: 20px;
+   font-size: 32px;
+   margin-left: 10px;
+   margin-right: 10px;
 }
 .pokemonInfoBox{
    background-color: white;
@@ -1011,6 +1224,7 @@ body {
    margin-top: 12px;
    margin-right: 12px;
    background-color: white;
+   vertical-align: middle;
 }
 .resultColumn{
    display: inline-block;
