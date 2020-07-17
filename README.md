@@ -1,2 +1,2 @@
 # effectivity
-* quick maths calculating pokemon efficiencies*
+_quick maths calculating pokemon efficiencies_
