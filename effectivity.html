@@ -7,7 +7,7 @@ pokemonList =
 
 // ---------- insert export data:
 
-[{"names":["Aranestro"],"types":["Water","Bug"]},{"names":["Bandelby"],"types":["Bug","Fairy"]},{"names":["Bronzong"],"types":["Steel","Psychic"]},{"names":["Galagladi"],"types":["Psychic","Fighting"]},{"names":["Glurak"],"types":["Fire","Flying"]},{"names":["Grandiras"],"types":["Dragon","Fighting"]},{"names":["Honweisel"],"types":["Bug","Flying"]},{"names":["Irokex"],"types":["Dark","Fighting"]},{"names":["Jiutesto"],"types":["Fighting"]},{"names":["Kamalm"],"types":["Water","Rock"]},{"names":["Machomei"],"types":["Fighting"]},{"names":["Mortipot"],"types":["Ghost"]},{"names":["Relaxo"],"types":["Normal"]},{"names":["Roserade"],"types":["Grass","Poison"]},{"names":["Schlaraffel"],"types":["Normal"]},{"names":["Siberio"],"types":["Ice"]},{"names":["Skuntank"],"types":["Poison","Dark"]},{"names":["Smettbo"],"types":["Bug","Flying"]},{"names":["Stalobor"],"types":["Ground","Steel"]},{"names":["Togekiss"],"types":["Fairy","Flying"]},{"names":["Viscogon"],"types":["Dragon"]},{"names":["Zobiris"],"types":["Dark","Ghost"]}]
+[{"names":["Aranestro"],"types":["Water","Bug"]},{"names":["Bandelby"],"types":["Bug","Fairy"]},{"names":["Bronzong"],"types":["Steel","Psychic"]},{"names":["Galagladi"],"types":["Psychic","Fighting"]},{"names":["Glurak"],"types":["Fire","Flying"]},{"names":["Grandiras"],"types":["Dragon","Fighting"]},{"names":["Honweisel"],"types":["Bug","Flying"]},{"names":["Irokex"],"types":["Dark","Fighting"]},{"names":["Jiutesto"],"types":["Fighting"]},{"names":["Kamalm"],"types":["Water","Rock"]},{"names":["Machomei"],"types":["Fighting"]},{"names":["Mortipot"],"types":["Ghost"]},{"names":["Relaxo"],"types":["Normal"]},{"names":["Roserade"],"types":["Grass","Poison"]},{"names":["Schlaraffel"],"types":["Normal"]},{"names":["Siberio"],"types":["Ice"]},{"names":["Skuntank"],"types":["Poison","Dark"]},{"names":["Smettbo"],"types":["Bug","Flying"]},{"names":["Stalobor"],"types":["Ground","Steel"]},{"names":["Togekiss"],"types":["Fairy","Flying"]},{"names":["Viscogon"],"types":["Dragon"]},{"names":["Voltula"],"types":["Bug","Electric"]},{"names":["Zobiris"],"types":["Dark","Ghost"]}]
 
 // ----------
 ;
@@ -63,9 +63,8 @@ class Type {
       {
          return this.getEffectivityAgainstTargets( target.types )
       }
-      else {
+      
          log.warn( "Type.getEffectivityAgainstTarget: target is of no valid class" );
-      }
       return 0;
    }
    getEffectivityAgainstTargets( targets )
@@ -1134,6 +1133,8 @@ function init()
    let controls = new ControlBar();
    let results = new ResultContainer();
 
+   const allGeneratedDoubleTypes = (controls.createDoubleTypes) ? DoubleType.generateFromList( TYPES ) : TYPES;
+
    controls.onUpdate = function( controlsBar )
    {
       results.empty();
@@ -1146,20 +1147,21 @@ function init()
       }
       if ( selectedType )
       {
-         results.addChild( new ResultBox( new ResultColumn( selectedType, [], [] ),
+         results.addChild( new ResultBox(
+            new ResultColumn( selectedType, [], [] ),
                                           new ResultColumn( selectedType, TYPES, [], controls.sourceOnlyEffective ) ) );
-
-         const allGeneratedDoubleTypes = (controls.createDoubleTypes) ? DoubleType.generateFromList( TYPES ) : TYPES;
 
          if ( selectedType instanceof DoubleType )
          {
             results.addChild(
-               new ResultBox( new ResultColumn( selectedType.types[0], [], [] ),
+               new ResultBox(
+                  new ResultColumn( selectedType.types[0], [], [] ),
                               undefined,
                               new ResultColumn( selectedType.types[0], [], allGeneratedDoubleTypes, controls.targetOnlyEffective )
                             ) );
             results.addChild(
-               new ResultBox( new ResultColumn( selectedType.types[1], [], [] ),
+               new ResultBox(
+                  new ResultColumn( selectedType.types[1], [], [] ),
                               undefined,
                               new ResultColumn( selectedType.types[1], [], allGeneratedDoubleTypes, controls.targetOnlyEffective )
                ) );
@@ -1167,7 +1169,8 @@ function init()
          else
          {
             results.addChild(
-               new ResultBox( new ResultColumn( selectedType, [], [] ),
+               new ResultBox(
+                  new ResultColumn( selectedType, [], [] ),
                               undefined,
                               new ResultColumn( selectedType, [], allGeneratedDoubleTypes, controls.targetOnlyEffective )
                             ) );
